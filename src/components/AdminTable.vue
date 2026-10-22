@@ -30,7 +30,17 @@
           <template v-else>
             <tr v-for="row in pagedRows" :key="row.id" class="border-t border-slate-100 hover:bg-slate-50">
               <td v-for="col in columns" :key="col.key" :class="['px-6 py-4', col.cellClass]">
-                {{ row[col.key] }}
+                <span
+                  v-if="col.badge"
+                  :class="[
+                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-[14px]',
+                    col.badge(row[col.key]),
+                  ]"
+                >
+                  <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+                  {{ row[col.key] }}
+                </span>
+                <template v-else>{{ row[col.key] }}</template>
               </td>
               <td v-if="$slots.actions" class="px-6 py-3">
                 <div class="flex justify-end gap-2">
@@ -43,7 +53,6 @@
       </table>
     </div>
 
-    <!-- Footer: keterangan jumlah + paginasi -->
     <div class="flex items-center justify-between border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
       <span>{{ summary }}</span>
 
@@ -92,11 +101,11 @@ import { ref, computed, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 
 const props = defineProps({
-  columns: { type: Array, required: true }, // [{ key, label, cellClass? }]
+  columns: { type: Array, required: true }, 
   rows: { type: Array, default: () => [] },
   loading: Boolean,
   perPage: { type: Number, default: 6 },
-  entity: { type: String, default: 'data' }, // untuk kalimat "dari 13 jurusan"
+  entity: { type: String, default: 'data' }, 
 })
 
 const page = ref(1)
@@ -117,7 +126,6 @@ const summary = computed(() => {
   return `Menampilkan ${start}–${end} dari ${total} ${props.entity}`
 })
 
-// Contoh hasil: 1 2 3 … 19
 const pageNumbers = computed(() => {
   const total = totalPages.value
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)

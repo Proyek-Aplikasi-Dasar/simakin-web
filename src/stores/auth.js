@@ -6,7 +6,7 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
     role: null,
-    ready: false, // true setelah pengecekan sesi pertama selesai
+    ready: false, 
   }),
 
   getters: {
@@ -39,9 +39,9 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async login(email, password) {
+    async login(username, password) {
       await getCsrfCookie()
-      const { data } = await api.post('/api/login', { email, password })
+      const { data } = await api.post('/api/login', { username, password })
       this.setUser(data.user)
 
       if (!WEB_ROLES.includes(this.role)) {
@@ -50,12 +50,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Logout sungguhan: hancurkan session di BE, lalu bersihkan state
     async logout() {
       try {
         await api.post('/api/logout', null, { skipAuthRedirect: true })
       } catch {
-        // abaikan: state lokal tetap dibersihkan
       } finally {
         this.clear()
       }

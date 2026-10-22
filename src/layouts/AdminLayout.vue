@@ -41,7 +41,12 @@
               </span>
 
               <span class="flex-1 text-left">{{ item.label }}</span>
-
+              <span
+                v-if="item.badge"
+                class="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-semibold leading-none text-white"
+              >
+                {{ item.badge }}
+              </span>
               <AppIcon v-if="item.children" name="chevron-down" class="h-4 w-4 rotate-180" />
             </component>
 
@@ -165,7 +170,7 @@ const menu = [
   {
     title: 'PKL',
     items: [
-      { label: 'Pengajuan PKL', icon: 'clipboard-list' },
+      { label: 'Pengajuan PKL', icon: 'clipboard-list', to: '/admin/pengajuan-pkl' },
       { label: 'Lokasi & Penempatan', icon: 'pin' },
     ],
   },

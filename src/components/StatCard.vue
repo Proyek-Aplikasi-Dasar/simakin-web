@@ -12,7 +12,7 @@
       <p class="text-[30px] font-bold leading-[38px] tracking-[-0.02em] text-slate-900">
         {{ hasValue ? value : '—' }}
       </p>
-      <p class="text-[11px] leading-[14px] text-slate-500">{{ hasValue ? hint : 'Menunggu data dari BE' }}</p>
+      <p class="text-[11px] leading-[14px] text-slate-500">{{ hasValue ? hint : 'Menunggu data BE' }}</p>
     </div>
   </div>
 </template>
@@ -26,7 +26,7 @@ const props = defineProps({
   value: { type: [Number, String], default: null },
   hint: { type: String, default: '' },
   icon: { type: String, required: true },
-  tone: { type: String, default: 'blue' }, // 'blue' | 'amber' | 'green'
+  tone: { type: String, default: 'blue' }, 
 })
 
 const hasValue = computed(() => props.value !== null && props.value !== undefined)
@@ -35,5 +35,7 @@ const tones = {
   blue: 'bg-blue-50 text-blue-600',
   amber: 'bg-yellow-50 text-yellow-700',
   green: 'bg-emerald-50 text-emerald-700',
+  red: 'bg-red-50 text-red-700',
+
 }
 </script>

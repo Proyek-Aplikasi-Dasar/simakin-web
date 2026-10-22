@@ -121,15 +121,15 @@ import { useToastStore } from '../stores/toast'
 
 const props = defineProps({
   title: { type: String, required: true },
-  columns: { type: Array, required: true }, // [{ key, label }]
-  fields: { type: Array, required: true },  // [{ key, label, type?, options? }]
+  columns: { type: Array, required: true }, 
+  fields: { type: Array, required: true },  
   data: { type: Array, default: () => [] },
   loading: Boolean,
   error: { type: String, default: '' },
   allowBulk: Boolean,
-  saving: Boolean, // true selama request simpan berjalan (dari parent)
-  closeOnSave: { type: Boolean, default: true }, // false = parent yang menutup modal lewat closeForm()
-  fieldErrors: { type: Object, default: () => ({}) }, // { namaField: 'pesan' } dari respons 422
+  saving: Boolean, 
+  closeOnSave: { type: Boolean, default: true }, 
+  fieldErrors: { type: Object, default: () => ({}) }, 
   deleteMessage: { type: String, default: 'Data yang dihapus tidak bisa dikembalikan. Lanjutkan?' },
 })
 

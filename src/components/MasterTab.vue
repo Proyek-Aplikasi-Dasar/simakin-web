@@ -64,10 +64,10 @@ import ConfirmDialog from './ConfirmDialog.vue'
 const props = defineProps({
   title: { type: String, required: true },
   subtitle: { type: String, default: '' },
-  entity: { type: String, required: true }, // huruf kecil, contoh: 'jurusan'
+  entity: { type: String, required: true }, 
   columns: { type: Array, required: true },
-  resource: { type: Object, required: true }, // hasil reactive(useMasterResource(...))
-  basePath: { type: String, required: true }, // contoh: '/admin/data-master/jurusan'
+  resource: { type: Object, required: true }, 
+  basePath: { type: String, required: true }, 
   deleteMessage: { type: String, default: 'Data yang dihapus tidak bisa dikembalikan.' },
 })
 

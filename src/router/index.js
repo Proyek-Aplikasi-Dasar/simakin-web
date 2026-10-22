@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
-// Dua halaman form (tambah & edit) untuk satu jenis data master.
-// Parameter :id di URL otomatis dikirim ke komponen sebagai prop "id".
 function masterFormRoutes(type) {
   const component = () => import('../views/admin/MasterFormPage.vue')
   return [
@@ -47,12 +45,33 @@ const routes = [
       {
         path: 'master-data/siswa',
         name: 'master-siswa',
-        component: () => import('../views/admin/SiswaView.vue'),
+        component: () => import('../views/admin/SiswaListView.vue'),
       },
       {
-        path: 'master-data/perusahaan',
-        name: 'master-perusahaan',
-        component: () => import('../views/admin/PerusahaanView.vue'),
+        path: 'master-data/siswa/tambah',
+        name: 'siswa-tambah',
+        component: () => import('../views/admin/SiswaFormPage.vue'),
+      },
+      {
+        path: 'data-master/perusahaan/tambah',
+        name: 'perusahaan-tambah',
+        component: () => import('../views/admin/PerusahaanFormPage.vue'),
+      },
+      {
+        path: 'data-master/perusahaan/:id/edit',
+        name: 'perusahaan-edit',
+        component: () => import('../views/admin/PerusahaanFormPage.vue'),
+        props: true,
+      },
+      {
+        path: 'pengajuan-pkl',
+        name: 'pengajuan-pkl',
+        component: () => import('../views/admin/PengajuanPklView.vue'),
+      },
+      {
+        path: 'export-import',
+        name: 'export-import',
+        component: () => import('../views/admin/ExportImportPage.vue'),
       },
       {
         path: 'data-master',
@@ -61,10 +80,17 @@ const routes = [
       },
       ...masterFormRoutes('jurusan'),
       ...masterFormRoutes('kompetensi'),
+      ...masterFormRoutes('gelombang'),
+      ...masterFormRoutes('sikap'),
       {
         path: 'master-data/guru',
         name: 'master-guru',
-        component: () => import('../views/admin/GuruView.vue'),
+        component: () => import('../views/admin/GuruListView.vue'),
+      },
+      {
+        path: 'master-data/guru/tambah',
+        name: 'guru-tambah',
+        component: () => import('../views/admin/GuruFormPage.vue'),
       },
     ],
   },
@@ -74,7 +100,6 @@ const routes = [
     component: () => import('../views/Dashboard.vue'),
     meta: { requiresAuth: true, allowedRoles: ['guru'] },
   },
-  // Alamat tidak dikenal -> kembali ke login (guard akan arahkan ke home kalau sudah login)
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 

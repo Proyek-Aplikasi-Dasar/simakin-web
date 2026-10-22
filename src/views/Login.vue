@@ -1,9 +1,9 @@
 <template>
   <div class="min-h-screen flex bg-white font-sans">
     <section class="hidden lg:flex relative overflow-hidden flex-col justify-between w-[640px] shrink-0 bg-blue-600 p-16">
-      <div class="absolute left-[300px] -top-[160px] w-[520px] h-[520px] rounded-full bg-blue-700/[0.35]"></div>
-      <div class="absolute -left-[120px] top-[640px] w-[360px] h-[360px] rounded-full bg-blue-700/[0.25]"></div>
-      <div class="absolute left-[420px] top-[700px] w-[200px] h-[200px] rounded-full bg-blue-700/[0.2]"></div>
+      <div class="absolute left-[300px] -top-[160px] w-[520px] h-[520px] rounded-full bg-blue-700"></div>
+      <div class="absolute -left-[120px] top-[640px] w-[360px] h-[360px] rounded-full bg-blue-700"></div>
+      <div class="absolute left-[420px] top-[700px] w-[200px] h-[200px] rounded-full bg-blue-700"></div>
 
       <!-- Logo -->
       <div class="relative flex items-center gap-3">
@@ -20,12 +20,11 @@
           Sistem Informasi PKL
         </span>
         <h2 class="text-4xl font-bold leading-[44px] tracking-[-0.02em] text-white">
-          Pantau PKL siswa bimbingan dalam satu tempat.
+          {{ copy.headline }}
         </h2>
         <ul class="flex flex-col gap-5">
-          <li v-for="point in points" :key="point" class="flex items-center gap-3">
+          <li v-for="point in copy.points" :key="point" class="flex items-center gap-3">
             <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-700">
-              <!-- ikon circle-check (Lucide) -->
               <svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -45,7 +44,7 @@
       <form class="flex w-[400px] max-w-full flex-col gap-6" @submit.prevent="handleLogin">
         <div class="flex flex-col gap-1.5">
           <h1 class="text-2xl font-bold leading-8 tracking-[-0.02em] text-slate-900">Masuk ke SimakIn</h1>
-          <p class="text-xs leading-[18px] text-slate-600">Gunakan akun yang diberikan admin sekolah.</p>
+          <p class="text-xs leading-[18px] text-slate-600">{{ copy.subtitle }}</p>
         </div>
 
         <!-- Pilihan role -->
@@ -76,16 +75,18 @@
           </label>
         </div>
 
-        <!-- Username / NIP -->
+        <!-- Username -->
         <div class="flex flex-col gap-1.5">
-          <label for="email" class="text-xs font-semibold leading-4 text-slate-900">Email</label>
+          <label for="username" class="text-xs font-semibold leading-4 text-slate-900">
+            {{ copy.usernameLabel }}
+          </label>
           <input
-            id="email"
-            v-model="email"
-            type="email"
+            id="username"
+            v-model="username"
+            type="text"
             autocomplete="username"
             required
-            placeholder="Masukkan email"
+            :placeholder="copy.usernamePlaceholder"
             class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
         </div>
@@ -134,7 +135,6 @@
           :disabled="loading"
           class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <!-- ikon arrow-right (Lucide) -->
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14" />
@@ -143,14 +143,14 @@
           {{ loading ? 'Memproses...' : 'Masuk' }}
         </button>
 
-        <p class="text-[11px] leading-[14px] text-slate-500">Butuh bantuan? Hubungi admin TU sekolah.</p>
+        <p class="text-[11px] leading-[14px] text-slate-500">{{ copy.help }}</p>
       </form>
     </section>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getErrorMessage } from '../services/api'
@@ -158,19 +158,41 @@ import { getErrorMessage } from '../services/api'
 const router = useRouter()
 const auth = useAuthStore()
 
-const points = [
-  'Pantau presensi dan jurnal harian secara real-time',
-  'Input nilai akhir siswa lebih cepat',
-  'Chat langsung dengan siswa bimbingan',
-]
+const content = {
+  admin: {
+    headline: 'Kelola PKL seluruh siswa dalam satu panel.',
+    points: [
+      'Pantau presensi dan jurnal seluruh siswa',
+      'Verifikasi pengajuan dan penempatan PKL',
+      'Kelola akun, data master, dan laporan',
+    ],
+    subtitle: 'Gunakan akun administrator sekolah.',
+    help: 'Butuh bantuan? Hubungi pengelola sistem sekolah.',
+    usernameLabel: 'Username',
+    usernamePlaceholder: 'Masukkan username',
+  },
+  guru: {
+    headline: 'Pantau PKL siswa bimbingan dalam satu tempat.',
+    points: [
+      'Pantau presensi dan jurnal harian secara real-time',
+      'Input nilai akhir siswa lebih cepat',
+      'Chat langsung dengan siswa bimbingan',
+    ],
+    subtitle: 'Gunakan akun yang diberikan admin sekolah.',
+    help: 'Butuh bantuan? Hubungi admin TU sekolah.',
+    usernameLabel: 'Username / NIP',
+    usernamePlaceholder: 'Masukkan username atau NIP',
+  },
+}
 
 const roleOptions = [
   { value: 'guru', label: 'Guru Pembimbing' },
   { value: 'admin', label: 'Administrator' },
 ]
 
-const selectedRole = ref('guru')
-const email = ref('')
+const selectedRole = ref('admin') 
+const copy = computed(() => content[selectedRole.value])
+const username = ref('')
 const password = ref('')
 const remember = ref(true)
 const errorMsg = ref('')
@@ -182,7 +204,7 @@ async function handleLogin() {
   loading.value = true
 
   try {
-    await auth.login(email.value, password.value)
+    await auth.login(username.value, password.value)
 
     if (auth.role !== selectedRole.value) {
       await auth.logout()
