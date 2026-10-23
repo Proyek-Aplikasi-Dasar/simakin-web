@@ -58,6 +58,12 @@ const routes = [
         component: () => import('../views/admin/PerusahaanFormPage.vue'),
       },
       {
+        path: 'data-master/perusahaan/:id',
+        name: 'perusahaan-detail',
+        component: () => import('../views/admin/PerusahaanDetailPage.vue'),
+        props: true,
+      },
+      {
         path: 'data-master/perusahaan/:id/edit',
         name: 'perusahaan-edit',
         component: () => import('../views/admin/PerusahaanFormPage.vue'),
@@ -72,6 +78,11 @@ const routes = [
         path: 'export-import',
         name: 'export-import',
         component: () => import('../views/admin/ExportImportPage.vue'),
+      },
+      {
+        path: 'pengaturan',
+        name: 'pengaturan',
+        component: () => import('../views/admin/PengaturanSistemView.vue'),
       },
       {
         path: 'data-master',

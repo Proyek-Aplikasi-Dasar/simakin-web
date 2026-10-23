@@ -90,6 +90,7 @@
         base-path="/admin/data-master/perusahaan"
         :columns="perusahaanColumns"
         :resource="perusahaan"
+        detailable
       />
 
       <MasterTab
