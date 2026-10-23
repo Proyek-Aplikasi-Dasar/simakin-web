@@ -25,6 +25,15 @@
     <AdminTable :columns="columns" :rows="filteredRows" :loading="resource.loading" :entity="entity">
       <template #actions="{ row }">
         <button
+          v-if="detailable"
+          type="button"
+          class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+          :aria-label="`Lihat ${entity}`"
+          @click="router.push(`${basePath}/${row.id}`)"
+        >
+          <AppIcon name="eye" class="h-4 w-4" />
+        </button>
+        <button
           type="button"
           class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
           :aria-label="`Edit ${entity}`"
@@ -69,6 +78,7 @@ const props = defineProps({
   resource: { type: Object, required: true }, 
   basePath: { type: String, required: true }, 
   deleteMessage: { type: String, default: 'Data yang dihapus tidak bisa dikembalikan.' },
+  detailable: { type: Boolean, default: false }, 
 })
 
 const router = useRouter()

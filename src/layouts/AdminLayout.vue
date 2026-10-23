@@ -189,7 +189,7 @@ const menu = [
     title: 'LAINNYA',
     items: [
       { label: 'Notifikasi', icon: 'bell' },
-      { label: 'Pengaturan Sistem', icon: 'settings' },
+      { label: 'Pengaturan Sistem', icon: 'settings', to: '/admin/pengaturan' },
     ],
   },
 ]
