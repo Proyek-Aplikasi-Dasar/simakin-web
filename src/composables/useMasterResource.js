@@ -17,11 +17,6 @@ export async function fetchAll(url) {
   return all
 }
 
-// Logika CRUD yang dipakai ulang oleh semua halaman Data Master
-// endpoint  : contoh '/api/jurusan'
-// name      : nama data untuk pesan, contoh 'Jurusan'
-// normalize : (opsional) ubah bentuk tiap baris sebelum masuk tabel
-// reload    : (opsional) ambil ulang daftar setelah simpan; matikan di halaman form
 export function useMasterResource(
   endpoint,
   { name = 'Data', normalize = (row) => row, reload = true } = {}
@@ -69,7 +64,6 @@ export function useMasterResource(
       const status = err.response?.status
 
       if (status === 422) {
-        // Laravel: { errors: { nama: ['pesan1', 'pesan2'] } } -> ambil pesan pertama tiap field
         const errors = err.response.data?.errors ?? {}
         fieldErrors.value = Object.fromEntries(
           Object.entries(errors).map(([field, messages]) => [field, messages[0]])

@@ -5,7 +5,6 @@
       <div class="absolute -left-[120px] top-[640px] w-[360px] h-[360px] rounded-full bg-blue-700"></div>
       <div class="absolute left-[420px] top-[700px] w-[200px] h-[200px] rounded-full bg-blue-700"></div>
 
-      <!-- Logo -->
       <div class="relative flex items-center gap-3">
         <img src="../assets/logo-simakin.png" alt="" class="w-11 h-11" />
         <div>
@@ -14,7 +13,6 @@
         </div>
       </div>
 
-      <!-- Pitch -->
       <div class="relative flex flex-col gap-5 w-[480px] max-w-full">
         <span class="self-start rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-semibold leading-[14px] text-slate-900">
           Sistem Informasi PKL
@@ -39,7 +37,6 @@
       <p class="relative text-[11px] leading-[14px] text-blue-200">© 2026 SMK Negeri 1 Magelang</p>
     </section>
 
-    <!-- Panel kanan: form -->
     <section class="flex flex-1 items-center justify-center p-6">
       <form class="flex w-[400px] max-w-full flex-col gap-6" @submit.prevent="handleLogin">
         <div class="flex flex-col gap-1.5">
@@ -47,7 +44,6 @@
           <p class="text-xs leading-[18px] text-slate-600">{{ copy.subtitle }}</p>
         </div>
 
-        <!-- Pilihan role -->
         <div class="flex gap-3">
           <label
             v-for="opt in roleOptions"
@@ -75,7 +71,6 @@
           </label>
         </div>
 
-        <!-- Username -->
         <div class="flex flex-col gap-1.5">
           <label for="username" class="text-xs font-semibold leading-4 text-slate-900">
             {{ copy.usernameLabel }}
@@ -91,21 +86,41 @@
           />
         </div>
 
-        <!-- Password -->
         <div class="flex flex-col gap-1.5">
           <label for="password" class="text-xs font-semibold leading-4 text-slate-900">Password</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            required
-            placeholder="Masukkan password"
-            class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          />
+          <div class="relative">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              required
+              placeholder="Masukkan password"
+              class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-3 pr-10 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            />
+            <button
+              type="button"
+              :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+              :aria-pressed="showPassword"
+              class="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+              @click="showPassword = !showPassword"
+            >
+              <svg v-if="!showPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                <path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                <path d="m2 2 20 20" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <!-- Ingat saya + lupa password -->
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <button
@@ -150,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getErrorMessage } from '../services/api'
@@ -190,13 +205,42 @@ const roleOptions = [
   { value: 'admin', label: 'Administrator' },
 ]
 
-const selectedRole = ref('admin') 
+const STORAGE_PREFIX = 'simakin:login:'
+const ROLES = ['guru', 'admin']
+
+function readStore(key) {
+  try {
+    return localStorage.getItem(STORAGE_PREFIX + key)
+  } catch {
+    return null
+  }
+}
+function writeStore(key, value) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, value)
+  } catch {
+  }
+}
+function removeStore(key) {
+  try {
+    localStorage.removeItem(STORAGE_PREFIX + key)
+  } catch {
+  }
+}
+
+const lastRole = readStore('role')
+const selectedRole = ref(ROLES.includes(lastRole) ? lastRole : 'admin') 
 const copy = computed(() => content[selectedRole.value])
-const username = ref('')
+const username = ref(readStore(`username:${selectedRole.value}`) ?? '')
 const password = ref('')
+const showPassword = ref(false)
 const remember = ref(true)
 const errorMsg = ref('')
 const loading = ref(false)
+
+watch(selectedRole, (role) => {
+  username.value = readStore(`username:${role}`) ?? ''
+})
 
 async function handleLogin() {
   if (loading.value) return
@@ -211,6 +255,14 @@ async function handleLogin() {
       errorMsg.value = 'Akun ini bukan akun ' +
         (selectedRole.value === 'guru' ? 'Guru Pembimbing.' : 'Administrator.')
       return
+    }
+
+    if (remember.value) {
+      writeStore('role', selectedRole.value)
+      writeStore(`username:${selectedRole.value}`, username.value)
+    } else {
+      removeStore('role')
+      removeStore(`username:${selectedRole.value}`)
     }
 
     router.push(auth.homePath)

@@ -5,7 +5,6 @@
       <p class="mt-0.5 text-xs text-slate-500">{{ subtitle }}</p>
     </div>
 
-    <!-- Pencarian -->
     <div class="px-6 pb-5">
       <label class="flex h-11 items-center gap-3 rounded-xl bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-blue-200">
         <AppIcon name="search" class="h-4 w-4 text-slate-400" />
@@ -22,7 +21,7 @@
       {{ resource.error }}
     </p>
 
-    <AdminTable :columns="columns" :rows="filteredRows" :loading="resource.loading" :entity="entity">
+    <AdminTable v-model:page="page" :columns="columns" :rows="filteredRows" :loading="resource.loading" :entity="entity">
       <template #actions="{ row }">
         <button
           v-if="detailable"
@@ -69,6 +68,7 @@ import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import AdminTable from './AdminTable.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
+import { useListState } from '../composables/useListState'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -83,6 +83,15 @@ const props = defineProps({
 
 const router = useRouter()
 const search = ref('')
+const page = ref(1)
+
+useListState(`master-${props.basePath}`, [`${props.basePath}/`], {
+  snapshot: () => ({ page: page.value, search: search.value }),
+  restore: (s) => {
+    page.value = s.page
+    search.value = s.search
+  },
+})
 const rowToDelete = ref(null)
 const deleting = ref(false)
 

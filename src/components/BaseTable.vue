@@ -14,7 +14,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(row, i) in paginatedData" :key="i" class="border-t hover:bg-gray-50">
+        <tr v-for="(row, i) in paginatedData" :key="row.id ?? i" class="border-t hover:bg-gray-50">
           <td v-for="col in columns" :key="col.key" class="px-4 py-3">{{ row[col.key] }}</td>
           <td v-if="$slots.actions" class="px-4 py-3">
             <slot name="actions" :row="row" />
@@ -36,10 +36,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { sortRows } from '../utils/sort'
 
 const props = defineProps({
-  columns: { type: Array, required: true }, // [{ key: 'name', label: 'Nama' }]
+  columns: { type: Array, required: true }, 
   data: { type: Array, required: true },
   perPage: { type: Number, default: 5 },
 })
@@ -62,15 +63,15 @@ const filtered = computed(() => {
 
 const sorted = computed(() => {
   if (!sortKey.value) return filtered.value
-  return [...filtered.value].sort((a, b) => {
-    const res = String(a[sortKey.value]).localeCompare(String(b[sortKey.value]))
-    return sortAsc.value ? res : -res
-  })
+  return sortRows(filtered.value, (row) => row[sortKey.value], sortAsc.value ? 'asc' : 'desc')
 })
 
-const totalPages = computed(() => Math.ceil(sorted.value.length / props.perPage))
+const totalPages = computed(() => Math.max(1, Math.ceil(sorted.value.length / props.perPage)))
 const paginatedData = computed(() => {
   const start = (page.value - 1) * props.perPage
   return sorted.value.slice(start, start + props.perPage)
 })
+
+// Kembali ke halaman 1 kalau pencarian atau urutan berubah
+watch([search, sortKey, sortAsc], () => (page.value = 1))
 </script>

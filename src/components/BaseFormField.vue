@@ -1,21 +1,20 @@
 <template>
-  <div class="mb-4">
-    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">{{ label }}</label>
-    <input
-      :type="type"
-      :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
-      @blur="touched = true"
-      :placeholder="placeholder"
-      class="w-full border rounded-lg px-3 py-2 text-sm"
-      :class="displayError ? 'border-red-400' : 'border-gray-300'"
-    />
-    <p v-if="displayError" class="text-red-500 text-xs mt-1">{{ displayError }}</p>
-  </div>
+  <FormField
+    :model-value="modelValue"
+    :label="label"
+    :type="type"
+    :placeholder="placeholder"
+    :required="required"
+    :error="displayError"
+    @update:model-value="$emit('update:modelValue', $event)"
+    @blur="touched = true"
+  />
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import FormField from './FormField.vue'
+import { required as requiredRule, email as emailRule } from '../utils/validators'
 
 const props = defineProps({
   label: String,
@@ -30,12 +29,11 @@ defineEmits(['update:modelValue'])
 const touched = ref(false)
 
 const internalError = computed(() => {
-  if (props.required && !props.modelValue) return 'Wajib diisi'
-  if (props.type === 'email' && props.modelValue) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!re.test(props.modelValue)) return 'Format email tidak valid'
+  if (props.required) {
+    const msg = requiredRule()(props.modelValue)
+    if (msg) return msg
   }
-  return ''
+  return props.type === 'email' ? emailRule()(props.modelValue) : ''
 })
 
 const displayError = computed(() => props.error || (touched.value ? internalError.value : ''))

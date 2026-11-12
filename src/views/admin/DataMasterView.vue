@@ -9,9 +9,19 @@
         to="/admin/export-import"
         class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold hover:bg-slate-50"
       >
-        <AppIcon name="file" class="h-4 w-4" />
+        <AppIcon name="file-text" class="h-4 w-4" />
         Export / Import
       </router-link>
+
+      <button
+        v-if="activeTab.bulk"
+        type="button"
+        class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold hover:bg-slate-50"
+        @click="showBulk = true"
+      >
+        <AppIcon name="download" class="h-4 w-4" />
+        Import Excel
+      </button>
 
       <router-link
         v-if="activeTab.entity"
@@ -50,13 +60,13 @@
       <MasterTab
         v-if="activeTab.key === 'jurusan'"
         key="jurusan"
-        title="Data Jurusan"
-        subtitle="Jurusan aktif untuk penempatan PKL."
-        entity="jurusan"
+        title="Data Program Studi"
+        subtitle="Program studi aktif untuk penempatan PKL."
+        entity="program studi"
         base-path="/admin/data-master/jurusan"
         :columns="jurusanColumns"
         :resource="jurusan"
-        delete-message="Jurusan yang masih dipakai kelas, siswa, atau kompetensi tidak bisa dihapus."
+        delete-message="Program studi yang masih dipakai kelas, siswa, atau kompetensi tidak bisa dihapus."
       />
 
       <MasterTab
@@ -108,19 +118,31 @@
         Data {{ activeTab.label }} belum tersedia. Menunggu endpoint dari BE.
       </div>
     </div>
+
+    <BulkImportDialog
+      v-if="activeTab.bulk"
+      :show="showBulk"
+      :title="activeTab.label"
+      :endpoint="activeTab.bulk.endpoint"
+      :template-type="activeTab.bulk.template"
+      @close="showBulk = false"
+      @done="activeTab.resource.load()"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../../components/PageHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import MasterTab from '../../components/MasterTab.vue'
+import BulkImportDialog from '../../components/BulkImportDialog.vue'
 import { useMasterResource } from '../../composables/useMasterResource'
 
 const route = useRoute()
 const router = useRouter()
+const showBulk = ref(false)
 
 const toDate = (iso) => new Date(`${iso}T00:00:00`)
 const fmt = (date, withYear) =>
@@ -146,7 +168,7 @@ const warnaStatus = (nilai) =>
     Selesai: 'border-slate-200 bg-slate-100 text-slate-600',
   })[nilai] ?? ''
 
-const jurusan = reactive(useMasterResource('/api/jurusan', { name: 'Jurusan' }))
+const jurusan = reactive(useMasterResource('/api/jurusan', { name: 'Program Studi' }))
 const kompetensi = reactive(
   useMasterResource('/api/kompetensi', {
     name: 'Kompetensi',
@@ -179,22 +201,21 @@ const perusahaan = reactive(
 
 const jurusanColumns = [
   { key: 'kode', label: 'Kode', cellClass: 'font-semibold text-blue-600' },
-  { key: 'nama', label: 'Jurusan', cellClass: 'font-semibold text-slate-900' },
+  { key: 'nama', label: 'Program Studi', cellClass: 'font-semibold text-slate-900' },
 ]
 const kompetensiColumns = [
   { key: 'kode', label: 'Kode', cellClass: 'font-semibold text-blue-600' },
   { key: 'nama', label: 'Kompetensi', cellClass: 'font-semibold text-slate-900' },
-  { key: 'jurusan_nama', label: 'Jurusan', cellClass: 'text-slate-600' },
+  { key: 'jurusan_nama', label: 'Program Studi', cellClass: 'text-slate-600' },
 ]
 const sikapColumns = [
   { key: 'nama', label: 'Soft Skill', cellClass: 'font-semibold text-slate-900' },
-  { key: 'deskripsi', label: 'Deskripsi', cellClass: 'text-slate-600' },
+  { key: 'deskripsi', label: 'Detail Indikator', cellClass: 'text-slate-600' },
 ]
 const gelombangColumns = [
   { key: 'nama', label: 'Gelombang', cellClass: 'font-semibold text-slate-900' },
   { key: 'tahun_ajaran', label: 'Tahun Ajaran', cellClass: 'text-slate-600' },
-  { key: 'pendaftaran', label: 'Pendaftaran', cellClass: 'text-slate-600' },
-  { key: 'praktik', label: 'Praktik', cellClass: 'text-slate-600' },
+  { key: 'praktik', label: 'Periode', cellClass: 'text-slate-600' },
   { key: 'status', label: 'Status', badge: warnaStatus },
 ]
 const perusahaanColumns = [
@@ -206,16 +227,29 @@ const perusahaanColumns = [
 ]
 
 const tabs = [
-  { key: 'jurusan', label: 'Jurusan', entity: 'Jurusan', resource: jurusan },
-  { key: 'kompetensi', label: 'Kompetensi KI/KD', entity: 'Kompetensi', resource: kompetensi },
+  { key: 'jurusan', label: 'Program Studi', entity: 'Program Studi', resource: jurusan },
+  {
+    key: 'kompetensi',
+    label: 'Kompetensi KI/KD',
+    entity: 'Kompetensi',
+    resource: kompetensi,
+    bulk: { endpoint: '/api/kompetensi/bulk-upload', template: 'kompetensi' },
+  },
   { key: 'sikap', label: 'Soft Skill', entity: 'Soft Skill', resource: sikap },
   { key: 'gelombang', label: 'Gelombang PKL', entity: 'Gelombang', resource: gelombang },
-  { key: 'perusahaan', label: 'Perusahaan Mitra', entity: 'Perusahaan', resource: perusahaan },
+  {
+    key: 'perusahaan',
+    label: 'Perusahaan Mitra',
+    entity: 'Perusahaan',
+    resource: perusahaan,
+    bulk: { endpoint: '/api/perusahaan/bulk-upload', template: 'perusahaan' },
+  },
 ]
 
 const activeTab = computed(() => tabs.find((t) => t.key === route.query.tab) ?? tabs[0])
 
 function selectTab(key) {
+  showBulk.value = false
   router.replace({ query: { tab: key } })
 }
 

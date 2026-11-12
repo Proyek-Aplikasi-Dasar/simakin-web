@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
   withCredentials: true,   // kirim & terima cookie session
   withXSRFToken: true,     // wajib: FE (5173) dan BE (8000) beda origin
   headers: { Accept: 'application/json' },
@@ -14,7 +14,6 @@ export async function getCsrfCookie() {
   await api.get('/sanctum/csrf-cookie')
 }
 
-// Ambil pesan error yang enak dibaca dari response BE
 export function getErrorMessage(error, fallback = 'Terjadi kesalahan.') {
   const data = error?.response?.data
   if (data?.errors) {
