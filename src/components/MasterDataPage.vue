@@ -1,6 +1,5 @@
 <template>
   <div class="p-8">
-    <!-- Judul + tombol aksi -->
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-xl font-semibold">{{ title }}</h1>
       <div class="flex gap-2">
@@ -20,7 +19,6 @@
       </div>
     </div>
 
-    <!-- Tiga keadaan: loading, error, normal -->
     <p v-if="loading" class="text-sm text-gray-500">Memuat data...</p>
     <div v-else-if="error" class="bg-red-50 text-red-600 text-sm rounded-lg p-4">{{ error }}</div>
     <BaseTable v-else :columns="columns" :data="data">
@@ -30,11 +28,9 @@
       </template>
     </BaseTable>
 
-    <!-- Modal tambah / edit -->
     <BaseModal :show="showForm" :title="editingRow ? `Edit ${title}` : `Tambah ${title}`" @close="closeForm">
       <div class="max-h-[60vh] overflow-y-auto pr-1">
         <template v-for="f in fields" :key="f.key">
-          <!-- Dropdown: dipakai kalau field punya "options" -->
           <div v-if="f.options" class="mb-4">
             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">{{ f.label }}</label>
             <select
@@ -48,7 +44,6 @@
             <p v-if="fieldErrors[f.key]" class="text-red-500 text-xs mt-1">{{ fieldErrors[f.key] }}</p>
           </div>
 
-          <!-- Teks panjang -->
           <div v-else-if="f.type === 'textarea'" class="mb-4">
             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">{{ f.label }}</label>
             <textarea
@@ -60,7 +55,6 @@
             <p v-if="fieldErrors[f.key]" class="text-red-500 text-xs mt-1">{{ fieldErrors[f.key] }}</p>
           </div>
 
-          <!-- Input biasa -->
           <BaseFormField
             v-else
             v-model="form[f.key]"
@@ -83,7 +77,6 @@
       </div>
     </BaseModal>
 
-    <!-- Modal konfirmasi hapus -->
     <BaseModal :show="!!rowToDelete" title="Konfirmasi Hapus" @close="rowToDelete = null">
       <p class="text-sm text-gray-600">{{ deleteMessage }}</p>
       <div class="flex justify-end gap-2 mt-4">
@@ -94,7 +87,6 @@
       </div>
     </BaseModal>
 
-    <!-- Modal upload Excel -->
     <BaseModal :show="showUpload" title="Upload Excel" @close="closeUpload">
       <FileUpload @file-selected="onFileSelected" />
       <div class="flex justify-end gap-2 mt-4">
@@ -137,7 +129,6 @@ const emit = defineEmits(['save', 'delete', 'bulk-upload', 'clear-errors'])
 
 const toast = useToastStore()
 
-// Form tambah / edit 
 const showForm = ref(false)
 const editingRow = ref(null)
 const form = reactive({})
@@ -172,7 +163,6 @@ function submitForm() {
   if (props.closeOnSave) closeForm()
 }
 
-// Hapus 
 const rowToDelete = ref(null)
 function askDelete(row) {
   rowToDelete.value = row
@@ -182,7 +172,6 @@ function confirmDelete() {
   rowToDelete.value = null
 }
 
-// Upload Excel 
 const showUpload = ref(false)
 const selectedFile = ref(null)
 

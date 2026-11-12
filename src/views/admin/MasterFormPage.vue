@@ -14,7 +14,7 @@
       </router-link>
     </PageHeader>
 
-    <form class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]" @submit.prevent="submit">
+    <form class="max-w-3xl" @submit.prevent="submit">
       <div class="self-start rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div class="p-6">
         <h2 class="text-base font-semibold text-slate-900">Form {{ cfg.label }}</h2>
@@ -44,7 +44,7 @@
               v-model="form[f.key]"
               :class="[inputBase, fieldErrors[f.key] ? 'border-red-500' : 'border-slate-200']"
             >
-              <option value="" disabled>Pilih jurusan</option>
+              <option value="" disabled>Pilih program studi</option>
               <option v-for="j in jurusanList" :key="j.id" :value="j.id">{{ j.nama }}</option>
             </select>
 
@@ -84,14 +84,6 @@
       </div>
       </div>
 
-      <div class="flex flex-col gap-6">
-        <FormCard title="Status">
-          <div class="-my-3">
-            <SwitchRow v-model="aktif" :label="cfg.statusLabel" :hint="cfg.statusHint" />
-          </div>
-          <p class="mt-3 text-[11px] text-slate-400">Penyimpanan status aktif menunggu kolom dari BE.</p>
-        </FormCard>
-      </div>
     </form>
   </div>
 </template>
@@ -101,8 +93,6 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '../../components/PageHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
-import FormCard from '../../components/FormCard.vue'
-import SwitchRow from '../../components/SwitchRow.vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useMasterResource, fetchAll } from '../../composables/useMasterResource'
 
@@ -115,15 +105,15 @@ const router = useRouter()
 
 const CONFIG = {
   jurusan: {
-    label: 'Jurusan',
+    label: 'Program Studi',
     endpoint: '/api/jurusan',
-    subtitle: 'Jurusan muncul di data siswa dan penempatan PKL.',
-    hint: 'Pastikan kode unik untuk tiap jurusan.',
-    statusLabel: 'Jurusan aktif',
+    subtitle: 'Program studi muncul di data siswa dan penempatan PKL.',
+    hint: 'Isi kode dan nama program studi.',
+    statusLabel: 'Program studi aktif',
     statusHint: 'Nonaktif jika tidak dipakai lagi.',
     fields: [
       { key: 'kode', label: 'Kode', placeholder: 'Masukkan kode' },
-      { key: 'nama', label: 'Nama Jurusan', placeholder: 'Masukkan nama jurusan' },
+      { key: 'nama', label: 'Nama Program Studi', placeholder: 'Masukkan nama program studi' },
     ],
   },
   gelombang: {
@@ -134,8 +124,8 @@ const CONFIG = {
     statusLabel: 'Gelombang aktif',
     statusHint: 'Siswa di gelombang ini bisa presensi dan mengisi jurnal.',
     notice: {
-      title: 'Hanya satu gelombang aktif',
-      text: 'Mengaktifkan gelombang ini menonaktifkan gelombang aktif sebelumnya.',
+      title: 'Status gelombang mengikuti tanggal',
+      text: 'Gelombang otomatis aktif selama periode praktik berlangsung. Presensi siswa hanya bisa dikirim di dalam periode praktik.',
     },
     fields: [
       { key: 'nama', label: 'Nama Gelombang', placeholder: 'Contoh: Gelombang 1' },
@@ -161,12 +151,12 @@ const CONFIG = {
   kompetensi: {
     label: 'Kompetensi',
     endpoint: '/api/kompetensi',
-    subtitle: 'Kompetensi terhubung ke satu jurusan.',
-    hint: 'Pilih jurusan, lalu isi kode dan nama kompetensi.',
+    subtitle: 'Kompetensi terhubung ke satu program studi.',
+    hint: 'Pilih program studi, lalu isi kode dan nama kompetensi.',
     statusLabel: 'Kompetensi aktif',
     statusHint: 'Tampil di dropdown jurnal siswa.',
     fields: [
-      { key: 'jurusan_id', label: 'Jurusan', select: true },
+      { key: 'jurusan_id', label: 'Program Studi', select: true },
       { key: 'kode', label: 'Kode', placeholder: 'Masukkan kode' },
       { key: 'nama', label: 'Nama Kompetensi', placeholder: 'Masukkan nama kompetensi' },
     ],
@@ -180,7 +170,6 @@ const backTo = { name: 'data-master', query: { tab: props.type } }
 const inputBase =
   'h-10 w-full rounded-xl border bg-white px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100'
 
-const aktif = ref(true)
 const form = reactive({})
 cfg.fields.forEach((f) => (form[f.key] = ''))
 

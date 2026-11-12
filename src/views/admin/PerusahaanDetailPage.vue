@@ -27,7 +27,6 @@
     <p v-else-if="loadError" class="rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
 
     <div v-else class="flex flex-col gap-6">
-      <!-- Ringkasan profil -->
       <section class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <div class="absolute inset-x-0 top-0 h-14 overflow-hidden bg-blue-600">
           <span class="absolute -top-[90px] left-[900px] h-[180px] w-[180px] rounded-full bg-blue-700"></span>
@@ -69,7 +68,6 @@
       </div>
 
       <div class="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <!-- Kolom utama -->
         <div class="flex flex-col gap-6">
           <FormCard title="Tentang Perusahaan">
             <p v-if="data.deskripsi" class="whitespace-pre-line text-sm leading-5 text-slate-600">
@@ -84,7 +82,7 @@
                 <thead class="bg-slate-100">
                   <tr>
                     <th
-                      v-for="h in ['Siswa', 'Prodi', 'Pembimbing', 'Status']"
+                      v-for="h in ['Siswa', 'Program Studi', 'Pembimbing', 'Status']"
                       :key="h"
                       class="px-6 py-2.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-slate-500"
                     >
@@ -105,7 +103,6 @@
           </FormCard>
         </div>
 
-        <!-- Kolom samping -->
         <div class="flex flex-col gap-6">
           <FormCard title="Lokasi" description="Lokasi perusahaan di peta.">
             <div class="flex flex-col gap-3">
@@ -149,7 +146,7 @@
             <p class="text-xs text-slate-400">Belum ada data bidang pekerjaan.</p>
           </FormCard>
 
-          <FormCard title="Jurusan Diterima">
+          <FormCard title="Program Studi Diterima">
             <div v-if="data.jurusan?.length" class="flex flex-wrap gap-2">
               <span
                 v-for="j in data.jurusan"
@@ -160,7 +157,7 @@
                 {{ j.nama }}
               </span>
             </div>
-            <p v-else class="text-xs text-slate-400">Belum ada jurusan yang dipilih.</p>
+            <p v-else class="text-xs text-slate-400">Belum ada program studi yang dipilih.</p>
           </FormCard>
         </div>
       </div>

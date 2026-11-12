@@ -17,7 +17,6 @@
       <p v-if="subtitle" class="text-sm leading-5 text-slate-600">{{ subtitle }}</p>
     </div>
 
-    <!-- Tombol aksi di kanan -->
     <div class="flex shrink-0 items-center gap-3">
       <slot />
     </div>
@@ -28,7 +27,7 @@
 import AppIcon from './AppIcon.vue'
 
 defineProps({
-  breadcrumb: { type: Array, default: () => [] }, // [{ label, to? }]
+  breadcrumb: { type: Array, default: () => [] },
   title: { type: String, required: true },
   subtitle: { type: String, default: '' },
 })

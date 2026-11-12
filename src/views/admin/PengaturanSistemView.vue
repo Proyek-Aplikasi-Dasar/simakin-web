@@ -6,7 +6,7 @@
       subtitle="Atur jam presensi harian dan penilaian bulanan: bulan aktif, tanggal pengisian, dan token."
     />
 
-    <div class="flex max-w-3xl flex-col gap-6">
+    <div class="flex max-w-[800px] flex-col gap-6">
       <FormCard title="Jam Presensi" description="Presensi cukup satu kali per hari, tanpa presensi masuk dan pulang.">
         <p v-if="loadError" class="mb-4 rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
         <p v-if="loading" class="text-sm text-slate-500">Memuat data...</p>
@@ -66,14 +66,7 @@
         </template>
       </FormCard>
 
-      <FormCard
-        title="Penilaian Bulanan"
-        description="Pilih bulan saat pembimbing industri boleh mengisi penilaian lewat HP siswa."
-      >
-        <p class="py-6 text-center text-sm text-slate-400">
-          Pengaturan penilaian bulanan belum tersedia. Menunggu endpoint dari BE.
-        </p>
-      </FormCard>
+      <PenilaianBulananSettings />
     </div>
   </div>
 </template>
@@ -84,6 +77,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
+import PenilaianBulananSettings from '../../components/PenilaianBulananSettings.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import { getErrorMessage } from '../../services/api'
 import { useMasterResource, fetchAll } from '../../composables/useMasterResource'

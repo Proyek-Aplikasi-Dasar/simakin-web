@@ -33,12 +33,16 @@
               </div>
               <button
                 type="button"
-                disabled
-                title="Menunggu format template dari BE"
-                class="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold opacity-60"
+                :disabled="!t.type || downloading === t.type"
+                :title="t.type ? undefined : 'Template belum tersedia di BE'"
+                :class="[
+                  'flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold',
+                  t.type ? 'hover:bg-slate-50 disabled:opacity-60' : 'cursor-not-allowed opacity-60',
+                ]"
+                @click="getTemplate(t.type)"
               >
                 <AppIcon name="download" class="h-4 w-4" />
-                Unduh
+                {{ t.type && downloading === t.type ? 'Mengunduh…' : 'Unduh' }}
               </button>
             </div>
           </div>
@@ -147,11 +151,10 @@ import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import FileDropzone from '../../components/FileDropzone.vue'
 import AppIcon from '../../components/AppIcon.vue'
-import api, { getErrorMessage } from '../../services/api'
 import { useToastStore } from '../../stores/toast'
+import { downloadTemplate, templateErrorMessage, uploadExcel, uploadErrorMessage } from '../../utils/bulk'
 
 const router = useRouter()
-
 const toast = useToastStore()
 
 const jenis = ref('')
@@ -159,6 +162,7 @@ const file = ref(null)
 const importing = ref(false)
 const result = ref(null)
 const dropKey = ref(0)
+const downloading = ref('')
 
 const importEndpoints = {
   Siswa: '/api/siswa/bulk-upload',
@@ -174,25 +178,29 @@ async function startImport() {
   if (!jenis.value || !file.value || importing.value) return
   importing.value = true
   result.value = null
-
-  const body = new FormData()
-  body.append('file', file.value)
-
   try {
-    const { data } = await api.post(importEndpoints[jenis.value], body)
+    const data = await uploadExcel(importEndpoints[jenis.value], file.value)
     result.value = data
     toast.show(data.message || 'Import selesai.', data.failed > 0 ? 'error' : 'success')
     file.value = null
     dropKey.value++
   } catch (err) {
-    const status = err.response?.status
-    if (status === 404) {
-      toast.show('Endpoint import belum tersedia di BE.', 'error')
-    } else if (status && ![401, 403, 419, 429].includes(status) && status < 500) {
-      toast.show(getErrorMessage(err, 'Import gagal.'), 'error')
-    }
+    const message = uploadErrorMessage(err)
+    if (message) toast.show(message, 'error')
   } finally {
     importing.value = false
+  }
+}
+
+async function getTemplate(type) {
+  if (!type || downloading.value) return
+  downloading.value = type
+  try {
+    await downloadTemplate(type)
+  } catch (err) {
+    toast.show(await templateErrorMessage(err), 'error')
+  } finally {
+    downloading.value = ''
   }
 }
 
@@ -203,19 +211,19 @@ const tones = {
 }
 
 const templates = [
-  { label: 'Siswa', icon: 'users', tone: 'blue' },
-  { label: 'Guru', icon: 'user-check', tone: 'blue' },
-  { label: 'Perusahaan', icon: 'building', tone: 'amber' },
-  { label: 'Jurusan', icon: 'cap', tone: 'blue' },
-  { label: 'Kompetensi', icon: 'clipboard-list', tone: 'blue' },
-  { label: 'Gelombang PKL', icon: 'calendar-check', tone: 'green' },
+  { label: 'Siswa', type: 'siswa', icon: 'users', tone: 'blue' },
+  { label: 'Guru', type: 'guru', icon: 'user-check', tone: 'blue' },
+  { label: 'Perusahaan', type: 'perusahaan', icon: 'building', tone: 'amber' },
+  { label: 'Program Studi', type: '', icon: 'cap', tone: 'blue' },
+  { label: 'Kompetensi', type: 'kompetensi', icon: 'clipboard-list', tone: 'blue' },
+  { label: 'Gelombang PKL', type: '', icon: 'calendar-check', tone: 'green' },
 ]
 
 const exportData = [
   { label: 'Data Siswa PKL', icon: 'users', tone: 'blue' },
   { label: 'Data Guru Pembimbing', icon: 'user-check', tone: 'blue' },
   { label: 'Data Perusahaan Mitra', icon: 'building', tone: 'amber' },
-  { label: 'Jurusan', icon: 'cap', tone: 'blue' },
+  { label: 'Program Studi', icon: 'cap', tone: 'blue' },
   { label: 'Kompetensi (KI/KD)', icon: 'clipboard-list', tone: 'blue' },
   { label: 'Gelombang PKL', icon: 'calendar-check', tone: 'green' },
   { label: 'Soft Skill', icon: 'award', tone: 'amber' },
