@@ -26,8 +26,33 @@
       <div class="flex flex-col gap-6">
         <FormCard title="Data Pribadi" description="Sama dengan data yang dilengkapi siswa di aplikasi.">
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <FormField id="name" v-model="form.name" label="Nama Lengkap" placeholder="Masukkan nama lengkap" :error="err('name')" />
-            <FormField id="nis" v-model="form.nis" label="NIS" placeholder="Masukkan NIS" :error="local.nis || fieldErrors.nis || fieldErrors.username || ''" />
+            <FormField id="name" v-model="form.name" label="Nama Lengkap" placeholder="Masukkan nama lengkap" :error="err('name')" @blur="touch('name')" />
+            <FormField id="nis" v-model="form.nis" label="NIS" placeholder="Masukkan NIS" :error="errorOf('nis') || fieldErrors.username || ''" @blur="touch('nis')" />
+            <FormField
+              id="nisn"
+              v-model="form.nisn"
+              inputmode="numeric"
+              label="NISN"
+              placeholder="Masukkan NISN (opsional)"
+              :maxlength="20"
+              :error="err('nisn')"
+            />
+            <FormField
+              id="tempat_lahir"
+              v-model="form.tempat_lahir"
+              label="Tempat Lahir"
+              placeholder="Contoh: Magelang"
+              :maxlength="100"
+              :error="err('tempat_lahir')"
+            />
+            <FormField
+              id="tanggal_lahir"
+              v-model="form.tanggal_lahir"
+              type="date"
+              label="Tanggal Lahir"
+              :max="today"
+              :error="err('tanggal_lahir')"
+            />
             <FormField id="kelas" v-model="form.kelas" label="Kelas" placeholder="Contoh: XII RPL 1" :error="err('kelas')" />
             <FormField
               id="jenis_kelamin"
@@ -96,6 +121,11 @@
               :options="gelombangOptions"
               :error="err('gelombang_id')"
             />
+            <SwitchRow
+              v-model="form.is_active"
+              label="Status aktif"
+              hint="Siswa nonaktif tidak muncul dalam daftar penempatan baru."
+            />
           </div>
         </FormCard>
 
@@ -112,7 +142,7 @@
               :label="isEdit ? 'Kata Sandi Baru' : 'Kata Sandi'"
               placeholder="Minimal 8 karakter"
               :hint="isEdit ? 'Kosongkan jika tidak ingin mengubah.' : ''"
-              :error="local.password || fieldErrors.password || ''"
+              :error="errorOf('password')"
             />
             <FormField
               id="password_confirmation"
@@ -120,7 +150,7 @@
               type="password"
               label="Konfirmasi Kata Sandi"
               placeholder="Ulangi kata sandi"
-              :error="local.password_confirmation"
+              :error="errorOf('password_confirmation')"
             />
           </div>
         </FormCard>
@@ -130,11 +160,13 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { getErrorMessage } from '../../services/api'
-import { fetchAllPages } from '../../utils/siswa'
+import { fetchAllPages, toIso } from '../../utils/siswa'
 import { useMasterResource } from '../../composables/useMasterResource'
+import { useFormValidation } from '../../composables/useFormValidation'
+import { required } from '../../utils/validators'
 import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
@@ -158,6 +190,10 @@ const jenisKelamin = [
 const form = reactive({
   name: '',
   nis: '',
+  nisn: '',
+  tempat_lahir: '',
+  tanggal_lahir: '',
+  is_active: true,
   kelas: '',
   jenis_kelamin: '',
   email: '',
@@ -173,6 +209,7 @@ const form = reactive({
   password_confirmation: '',
 })
 
+const today = toIso(new Date()) // tanggal lokal, bukan UTC (toISOString bisa mundur sehari sebelum jam 07.00 WIB)
 const jurusanOptions = ref([])
 const gelombangOptions = ref([])
 const loadingData = ref(isEdit)
@@ -180,10 +217,30 @@ const loadError = ref('')
 
 const { saving, fieldErrors, save } = useMasterResource('/api/siswa', { name: 'Siswa', reload: false })
 
-const local = reactive({})
-const err = (key) => local[key] || fieldErrors.value[key] || ''
-watch(() => form.name, () => delete local.name)
-watch(() => form.nis, () => delete local.nis)
+const REQUIRED = 'Kolom ini wajib diisi'
+const autoAccount = (f) => !isEdit && f.akun_otomatis
+// Kata sandi hanya divalidasi bila diisi manual (atau saat edit dan salah satu kolomnya terisi)
+const needsPassword = (f) => !autoAccount(f) && (!isEdit || !!f.password || !!f.password_confirmation)
+
+const { errorOf, validate, touch } = useFormValidation(
+  form,
+  {
+    name: [required(REQUIRED)],
+    nis: [
+      required(REQUIRED),
+      (v, f) =>
+        autoAccount(f) && v.trim().length < 8
+          ? 'NIS minimal 8 karakter agar bisa jadi kata sandi awal. Matikan "Buat akun otomatis" untuk mengisi sendiri.'
+          : '',
+    ],
+    password: [(v, f) => (needsPassword(f) && v.length < 8 ? 'Kata sandi minimal 8 karakter.' : '')],
+    password_confirmation: [
+      (v, f) => (needsPassword(f) && v !== f.password ? 'Konfirmasi kata sandi tidak cocok.' : ''),
+    ],
+  },
+  { external: () => fieldErrors.value }
+)
+const err = (key) => errorOf(key)
 
 const showPassword = computed(() => isEdit || !form.akun_otomatis)
 
@@ -206,6 +263,10 @@ async function loadSiswa() {
     Object.assign(form, {
       name: s.user?.name ?? '',
       nis: s.nis ?? '',
+      nisn: s.nisn ?? '',
+      tempat_lahir: s.tempat_lahir ?? '',
+      tanggal_lahir: s.tanggal_lahir ? String(s.tanggal_lahir).slice(0, 10) : '',
+      is_active: s.is_active == null ? true : !!s.is_active,
       kelas: s.kelas ?? '',
       jenis_kelamin: s.jenis_kelamin ?? '',
       email: s.user?.email ?? '',
@@ -224,25 +285,6 @@ async function loadSiswa() {
   }
 }
 
-function validate() {
-  Object.keys(local).forEach((k) => delete local[k])
-  const nis = form.nis.trim()
-
-  if (!form.name.trim()) local.name = 'Kolom ini wajib diisi'
-  if (!nis) local.nis = 'Kolom ini wajib diisi'
-
-  if (!isEdit && form.akun_otomatis) {
-    if (nis && nis.length < 8) {
-      local.nis = 'NIS minimal 8 karakter agar bisa jadi kata sandi awal. Matikan "Buat akun otomatis" untuk mengisi sendiri.'
-    }
-  } else if (!isEdit || form.password || form.password_confirmation) {
-    if (form.password.length < 8) local.password = 'Kata sandi minimal 8 karakter.'
-    if (form.password !== form.password_confirmation) local.password_confirmation = 'Konfirmasi kata sandi tidak cocok.'
-  }
-
-  return Object.keys(local).length === 0
-}
-
 async function submit() {
   if (saving.value || !validate()) return
 
@@ -251,6 +293,10 @@ async function submit() {
     name: form.name.trim(),
     nis,
     username: nis,
+    nisn: text(form.nisn),
+    tempat_lahir: text(form.tempat_lahir),
+    tanggal_lahir: form.tanggal_lahir || null,
+    is_active: form.is_active,
     email: text(form.email),
     jurusan_id: num(form.jurusan_id),
     gelombang_id: num(form.gelombang_id),

@@ -148,7 +148,7 @@
                           ]"
                           @click="onAction(row, n)"
                         >
-                          {{ n.status === 'cancelled' && confirmCancelId === row.id ? 'Yakin batalkan?' : n.label }}
+                          {{ n.label }}
                         </button>
                         <router-link
                           :to="`/admin/lokasi-penempatan/penempatan/${row.id}/edit`"
@@ -210,11 +210,22 @@
       @cancel="toDelete = null"
       @confirm="confirmDelete"
     />
+
+    <ConfirmDialog
+      :show="!!toCancel"
+      title="Batalkan penempatan?"
+      :message="`Status penempatan ${toCancel?.siswa?.nama ?? ''} akan diubah menjadi dibatalkan.`"
+      confirm-label="Batalkan Penempatan"
+      icon="x"
+      variant="warning"
+      @cancel="toCancel = null"
+      @confirm="confirmCancel"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
@@ -239,8 +250,7 @@ const data = ref({})
 const penempatan = ref([])
 
 const busyId = ref(null)
-const confirmCancelId = ref(null)
-let cancelTimer = null
+const toCancel = ref(null)
 
 const toDelete = ref(null)
 const deleting = ref(false)
@@ -303,13 +313,17 @@ async function load() {
 }
 
 function onAction(row, next) {
-  if (next.status === 'cancelled' && confirmCancelId.value !== row.id) {
-    confirmCancelId.value = row.id
-    clearTimeout(cancelTimer)
-    cancelTimer = setTimeout(() => (confirmCancelId.value = null), 4000)
+  if (next.status === 'cancelled') {
+    toCancel.value = row
     return
   }
   changeStatus(row, next.status)
+}
+
+async function confirmCancel() {
+  const target = toCancel.value
+  toCancel.value = null
+  if (target) await changeStatus(target, 'cancelled')
 }
 
 async function changeStatus(row, status) {
@@ -323,7 +337,6 @@ async function changeStatus(row, status) {
     toast.show(getErrorMessage(err, 'Gagal mengubah status.'), 'error')
   } finally {
     busyId.value = null
-    confirmCancelId.value = null
   }
 }
 
@@ -344,5 +357,4 @@ async function confirmDelete() {
 }
 
 onMounted(load)
-onBeforeUnmount(() => clearTimeout(cancelTimer))
 </script>

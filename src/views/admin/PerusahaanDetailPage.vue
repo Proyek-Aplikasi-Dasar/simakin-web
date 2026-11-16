@@ -55,8 +55,8 @@
       </section>
 
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Siswa PKL Aktif" icon="users" tone="blue" :value="null" />
-        <StatCard label="Total Alumni PKL" icon="cap" tone="blue" :value="null" />
+        <StatCard label="Siswa PKL Aktif" icon="users" tone="blue" :value="jumlahAktif" />
+        <StatCard label="Total Alumni PKL" icon="cap" tone="blue" :value="jumlahSelesai" />
         <StatCard label="Rata-rata Kehadiran" icon="calendar-check" tone="green" :value="null" />
         <StatCard
           label="Kuota"
@@ -82,7 +82,7 @@
                 <thead class="bg-slate-100">
                   <tr>
                     <th
-                      v-for="h in ['Siswa', 'Program Studi', 'Pembimbing', 'Status']"
+                      v-for="h in ['Siswa', 'Gelombang', 'Pembimbing', 'Status']"
                       :key="h"
                       class="px-6 py-2.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-slate-500"
                     >
@@ -92,10 +92,39 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
+                  <tr v-if="penempatanError">
+                    <td colspan="5" class="px-6 py-10 text-center text-xs text-red-600">
+                      {{ penempatanError }}
+                    </td>
+                  </tr>
+                  <tr v-else-if="!penempatanLoaded">
+                    <td colspan="5" class="px-6 py-10 text-center text-xs text-slate-400">Memuat data...</td>
+                  </tr>
+                  <tr v-else-if="!penempatan.length">
                     <td colspan="5" class="px-6 py-10 text-center text-xs text-slate-400">
                       Belum ada data penempatan siswa.
                     </td>
+                  </tr>
+                  <tr v-for="row in penempatan" :key="row.id" class="border-t border-slate-100">
+                    <td class="px-6 py-3">
+                      <p class="text-xs font-semibold text-slate-900">{{ row.siswa?.nama ?? '—' }}</p>
+                      <p class="text-[11px] text-slate-500">NIS {{ row.siswa?.nis ?? '—' }}</p>
+                    </td>
+                    <td class="px-6 py-3 text-xs text-slate-600">
+                      {{ row.gelombang ? `${row.gelombang.nama} ${row.gelombang.tahun_ajaran}` : '—' }}
+                    </td>
+                    <td class="px-6 py-3 text-xs text-slate-600">{{ row.guru?.nama ?? '—' }}</td>
+                    <td class="px-6 py-3">
+                      <span
+                        v-if="LOKASI_BADGE[row.status]"
+                        :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', LOKASI_BADGE[row.status].box]"
+                      >
+                        <span :class="['h-1.5 w-1.5 rounded-full', LOKASI_BADGE[row.status].dot]" />
+                        {{ LOKASI_BADGE[row.status].label }}
+                      </span>
+                      <span v-else class="text-xs text-slate-400">—</span>
+                    </td>
+                    <td class="px-6 py-3"></td>
                   </tr>
                 </tbody>
               </table>
@@ -128,7 +157,8 @@
 
               <InfoItem icon="pin" label="Alamat" :value="data.alamat" />
               <InfoItem icon="crosshair" label="Koordinat" :value="koordinat" />
-              <InfoItem icon="crosshair" label="Radius Presensi" value="" />
+              <InfoItem icon="crosshair" label="Radius Presensi" :value="data.radius_presensi != null ? `${data.radius_presensi} meter` : ''" />
+              <InfoItem icon="user-check" label="Pembimbing Industri" :value="data.pembimbing_industri" />
 
               <a
                 v-if="mapsUrl"
@@ -143,7 +173,8 @@
           </FormCard>
 
           <FormCard title="Bidang Pekerjaan">
-            <p class="text-xs text-slate-400">Belum ada data bidang pekerjaan.</p>
+            <p v-if="data.bidang_usaha" class="text-sm text-slate-600">{{ data.bidang_usaha }}</p>
+            <p v-else class="text-xs text-slate-400">Belum ada data bidang pekerjaan.</p>
           </FormCard>
 
           <FormCard title="Program Studi Diterima">
@@ -172,6 +203,8 @@ import AppIcon from '../../components/AppIcon.vue'
 import FormCard from '../../components/FormCard.vue'
 import StatCard from '../../components/StatCard.vue'
 import api, { getErrorMessage } from '../../services/api'
+import { fetchAllPages } from '../../utils/siswa'
+import { LOKASI_BADGE } from '../../utils/lokasi'
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -182,6 +215,18 @@ const backTo = { name: 'data-master', query: { tab: 'perusahaan' } }
 const loading = ref(true)
 const loadError = ref('')
 const data = ref({})
+
+const penempatan = ref([])
+const penempatanLoaded = ref(false)
+const penempatanError = ref('')
+
+// null selama data belum siap, supaya kartu menampilkan strip, bukan angka 0 yang menyesatkan
+const jumlahAktif = computed(() =>
+  penempatanLoaded.value ? penempatan.value.filter((l) => l.status === 'active').length : null
+)
+const jumlahSelesai = computed(() =>
+  penempatanLoaded.value ? penempatan.value.filter((l) => l.status === 'completed').length : null
+)
 
 const InfoItem = defineComponent({
   props: { icon: String, label: String, value: { type: [String, Number], default: '' } },
@@ -220,6 +265,15 @@ onMounted(async () => {
       err.response?.status === 404 ? 'Perusahaan tidak ditemukan.' : getErrorMessage(err, 'Gagal memuat data.')
   } finally {
     loading.value = false
+  }
+
+  // Penempatan dimuat terpisah: kegagalannya tidak boleh menutup detail perusahaan
+  if (loadError.value) return
+  try {
+    penempatan.value = await fetchAllPages('/api/lokasi-pkl', { perusahaan_id: props.id })
+    penempatanLoaded.value = true
+  } catch (err) {
+    penempatanError.value = getErrorMessage(err, 'Gagal memuat data penempatan siswa.')
   }
 })
 </script>

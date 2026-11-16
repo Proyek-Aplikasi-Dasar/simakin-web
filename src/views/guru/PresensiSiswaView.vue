@@ -4,11 +4,28 @@
       :breadcrumb="[{ label: 'Monitoring' }, { label: 'Presensi Siswa' }]"
       title="Presensi Siswa"
       subtitle="Pantau presensi harian siswa bimbingan PKL."
-    />
+    >
+      <button
+        type="button"
+        :disabled="exporting"
+        class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold leading-5 text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        @click="exportExcel"
+      >
+        <AppIcon name="download" class="h-5 w-5" />
+        {{ exporting ? 'Mengekspor…' : 'Ekspor Excel' }}
+      </button>
+      <router-link
+        :to="`/guru/presensi-siswa/tambah?tanggal=${applied.tanggal}`"
+        class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold leading-5 text-white hover:bg-blue-700"
+      >
+        <AppIcon name="calendar-check" class="h-5 w-5" />
+        Tambah Presensi
+      </router-link>
+    </PageHeader>
 
     <div class="flex flex-col gap-6">
       <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -29,7 +46,8 @@
             @click="tab = t.key"
           >
             {{ t.label }}
-            <span :class="['rounded-full px-2 py-0.5 text-[11px] leading-[14px]', tab === t.key ? 'bg-blue-50' : 'bg-slate-200']">
+            <span v-if="loading" class="h-[18px] w-6 animate-pulse rounded-full bg-slate-200"></span>
+            <span v-else :class="['rounded-full px-2 py-0.5 text-[11px] leading-[14px]', tab === t.key ? 'bg-blue-50' : 'bg-slate-200']">
               {{ t.count }}
             </span>
           </button>
@@ -50,7 +68,7 @@
 
           <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
-            <input v-model="draft.tanggal" type="date" class="min-w-0 flex-1 bg-transparent outline-none" />
+            <DatePicker v-model="draft.tanggal" bare class="min-w-0 flex-1" />
           </label>
 
           <SelectDropdown
@@ -85,7 +103,7 @@
           </span>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data presensi…</p>
+        <SkeletonRows v-if="loading" :rows="7" :cols="4" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
@@ -120,7 +138,7 @@
               <span class="truncate">{{ row.tempat }}</span>
             </div>
 
-            <div class="flex w-[40px] justify-end">
+            <div class="flex w-[90px] justify-end gap-2">
               <router-link
                 :to="detailLink(row)"
                 class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -129,53 +147,20 @@
               >
                 <AppIcon name="eye" class="h-5 w-5" />
               </router-link>
+              <router-link
+                v-if="!row.absensiId"
+                :to="`/guru/presensi-siswa/tambah?siswa_id=${row.siswaId}&tanggal=${applied.tanggal}`"
+                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                aria-label="Tambah presensi"
+                title="Tambah presensi manual"
+              >
+                <AppIcon name="pencil" class="h-5 w-5" />
+              </router-link>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="filtered.length">Menampilkan {{ from }}–{{ to }} dari {{ filtered.length }} siswa</template>
-            <template v-else>Tidak ada siswa</template>
-          </span>
-
-          <div v-if="lastPage > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="page--"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="page = p"
-              >
-                {{ p }}
-              </button>
-            </template>
-
-            <button
-              type="button"
-              :disabled="page >= lastPage"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="page++"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="siswa" />
       </section>
     </div>
   </div>
@@ -185,12 +170,16 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useAuthStore } from '../../stores/auth'
+import { useToastStore } from '../../stores/toast'
 import { fetchAllPages, groupBySiswa, jamOnly, formatDate, toIso } from '../../utils/siswa'
 import { PRESENSI_STATUS } from '../../utils/presensi'
 import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
+import DataPagination from '../../components/DataPagination.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
 
@@ -203,10 +192,12 @@ const columns = [
   { label: 'Waktu Kirim', width: 'w-[96px]', align: '' },
   { label: 'Status', width: 'w-[128px]', align: '' },
   { label: 'Tempat PKL / Keterangan', width: 'w-[200px]', align: '' },
-  { label: '', width: 'w-[40px]', align: '' },
+  { label: '', width: 'w-[90px]', align: '' },
 ]
 
 const auth = useAuthStore()
+const toast = useToastStore()
+const exporting = ref(false)
 
 const rows = ref([])
 const loading = ref(true)
@@ -327,18 +318,22 @@ const tabs = computed(() => [
   { key: 'belum', label: 'Belum Presensi', count: count('belum') },
 ])
 
-const stats = computed(() => [
-  { label: 'Hadir', value: count('hadir'), hint: `dari ${base.value.length} siswa aktif`, icon: 'user-check', tone: 'green' },
-  { label: 'Sakit', value: count('sakit'), hint: 'siswa hari ini', icon: 'alert', tone: 'amber' },
-  { label: 'Izin', value: count('izin'), hint: 'siswa hari ini', icon: 'file', tone: 'blue' },
-  {
-    label: 'Belum Presensi',
-    value: count('belum'),
-    hint: waktuAbsen.value ? `presensi dibuka ${waktuAbsen.value.mulai}–${waktuAbsen.value.selesai}` : 'siswa belum mengirim presensi',
-    icon: 'circle-x',
-    tone: 'red',
-  },
-])
+const stats = computed(() => {
+  // Saat memuat, nilai dikosongkan agar StatCard menampilkan bayangan, bukan angka 0 yang menyesatkan
+  const v = (n) => (loading.value ? null : n)
+  return [
+    { label: 'Hadir', value: v(count('hadir')), hint: loading.value ? '' : `dari ${base.value.length} siswa aktif`, icon: 'user-check', tone: 'green' },
+    { label: 'Sakit', value: v(count('sakit')), hint: 'siswa hari ini', icon: 'alert', tone: 'amber' },
+    { label: 'Izin', value: v(count('izin')), hint: 'siswa hari ini', icon: 'file', tone: 'blue' },
+    {
+      label: 'Belum Presensi',
+      value: v(count('belum')),
+      hint: waktuAbsen.value ? `presensi dibuka ${waktuAbsen.value.mulai}–${waktuAbsen.value.selesai}` : 'siswa belum mengirim presensi',
+      icon: 'circle-x',
+      tone: 'red',
+    },
+  ]
+})
 
 const filtered = computed(() => (tab.value === 'semua' ? base.value : base.value.filter((r) => r.status === tab.value)))
 const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
@@ -346,24 +341,39 @@ const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZ
 const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
 const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
-const pageItems = computed(() => {
-  const last = lastPage.value
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
-
 const detailLink = (r) =>
   r.absensiId
     ? `/guru/presensi-siswa/${r.absensiId}`
     : `/guru/presensi-siswa/belum/${r.siswaId}?tanggal=${applied.tanggal}`
+
+// Ekspor presensi ke Excel; BE membatasi data ke siswa bimbingan guru ini
+async function exportExcel() {
+  if (tab.value === 'belum') {
+    toast.show('Siswa yang belum presensi tidak ada di data ekspor.', 'error')
+    return
+  }
+  const params = { tanggal: applied.tanggal }
+  if (['hadir', 'izin', 'sakit', 'libur'].includes(tab.value)) params.status = tab.value
+  if (applied.search) params.search = applied.search
+
+  exporting.value = true
+  try {
+    const res = await api.get('/api/absensi/export', { params, responseType: 'blob', skipErrorToast: true })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `presensi-siswa-${applied.tanggal}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast.show('Presensi berhasil diekspor.')
+  } catch (e) {
+    toast.show(getErrorMessage(e, 'Gagal mengekspor presensi.'), 'error')
+  } finally {
+    exporting.value = false
+  }
+}
 
 watch(tab, () => (page.value = 1))
 

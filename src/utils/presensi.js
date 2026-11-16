@@ -8,8 +8,14 @@ export const PRESENSI_STATUS = {
 
 export function fotoUrl(path) {
   if (!path) return null
-  if (/^https?:/.test(path)) return path
-  return `${api.defaults.baseURL}${path}`
+  if (/^(https?:)?\/\/|^(data|blob):/i.test(path)) return path
+  const base = String(api.defaults.baseURL ?? '').replace(/\/+$/, '')
+  return `${base}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
+export function isGambar(path) {
+  if (!path) return false
+  return /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i.test(path)
 }
 
 export function jarakMeter(lat1, lon1, lat2, lon2) {

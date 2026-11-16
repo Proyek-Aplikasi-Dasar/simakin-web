@@ -19,7 +19,7 @@
         @click="exportCsv"
       >
         <AppIcon name="download" class="h-4 w-4" />
-        Export
+        Export CSV
       </button>
     </PageHeader>
 
@@ -79,12 +79,12 @@
           <div class="flex items-center gap-2">
             <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
               <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
-              <input v-model="range.from" type="date" :max="range.to" class="bg-transparent outline-none" />
+              <DatePicker v-model="range.from" :max="range.to" bare />
             </label>
             <span class="text-xs text-slate-500">s/d</span>
             <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
               <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
-              <input v-model="range.to" type="date" :min="range.from" class="bg-transparent outline-none" />
+              <DatePicker v-model="range.to" :min="range.from" bare />
             </label>
           </div>
           <button
@@ -148,46 +148,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="filtered.length">Menampilkan {{ from }}–{{ to }} dari {{ filtered.length }} hari</template>
-            <template v-else>Tidak ada data</template>
-          </span>
-          <div v-if="lastPage > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page - 1)"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="goTo(p)"
-              >
-                {{ p }}
-              </button>
-            </template>
-            <button
-              type="button"
-              :disabled="page >= lastPage"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page + 1)"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="hari" empty-label="data" />
       </section>
     </div>
 
@@ -274,9 +235,12 @@ import {
   toIso,
   ABSEN_STATUS,
 } from '../../utils/siswa'
+import { fotoUrl } from '../../utils/presensi'
 import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
+import DataPagination from '../../components/DataPagination.vue'
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -330,33 +294,9 @@ const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZ
 const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
 const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
-const pageItems = computed(() => {
-  const last = lastPage.value
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
-
 function selectTab(key) {
   activeTab.value = key
   page.value = 1
-}
-
-function goTo(p) {
-  if (p < 1 || p > lastPage.value || p === page.value) return
-  page.value = p
-}
-
-function fotoUrl(path) {
-  if (!path) return ''
-  return /^https?:\/\//.test(path) ? path : `${api.defaults.baseURL}${path}`
 }
 
 async function loadSiswa() {

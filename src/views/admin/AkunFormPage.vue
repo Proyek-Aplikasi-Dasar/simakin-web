@@ -57,7 +57,7 @@
             v-model="form.role"
             label="Peran Pengguna"
             :options="roleOptions"
-            :hint="isEdit ? '' : 'Akun siswa dibuat lewat menu Siswa PKL.'"
+            :hint="isEdit ? '' : 'Akun guru dibuat lewat menu Guru Pembimbing, akun siswa lewat menu Siswa PKL.'"
             :error="errors.role"
             :disabled="isEdit"
           />
@@ -150,14 +150,16 @@ const form = reactive({
   nama: '',
   nip: '',
   email: '',
-  role: 'guru',
+  // /api/register hanya membuat baris users. Akun guru/siswa harus dibuat lewat menu masing-masing
+  // supaya baris guru/siswa ikut terbuat, jadi saat tambah akun hanya admin yang bisa dipilih.
+  role: 'admin',
   password: '',
   passwordConfirmation: '',
 })
 
 const roleOptions = computed(() => [
   { value: 'admin', label: 'Administrator' },
-  { value: 'guru', label: 'Guru Pembimbing' },
+  { value: 'guru', label: 'Guru Pembimbing', disabled: !isEdit },
   { value: 'siswa', label: 'Siswa', disabled: !isEdit },
 ])
 

@@ -26,6 +26,9 @@
           <FormField id="telp" v-model="form.telp" label="Nomor Telepon" placeholder="Masukkan nomor telepon" :error="errorOf('telp')" @blur="touch('telp')" />
           <FormField id="email" v-model="form.email" type="email" label="Email" placeholder="Masukkan email" :error="errorOf('email')" @blur="touch('email')" />
           <FormField id="kuota" v-model="form.kuota" type="number" label="Kuota Siswa" placeholder="0" suffix="siswa" :error="errorOf('kuota')" @blur="touch('kuota')" />
+          <FormField id="radius_presensi" v-model="form.radius_presensi" type="number" label="Radius Presensi" placeholder="100" suffix="meter" hint="Jarak maksimal siswa dari lokasi perusahaan saat presensi." :error="errorOf('radius_presensi')" @blur="touch('radius_presensi')" />
+          <FormField id="bidang_usaha" v-model="form.bidang_usaha" label="Bidang Usaha" placeholder="Contoh: Teknologi Informasi" :error="errorOf('bidang_usaha')" />
+          <FormField id="pembimbing_industri" v-model="form.pembimbing_industri" label="Pembimbing Industri" placeholder="Masukkan nama pembimbing industri" :error="errorOf('pembimbing_industri')" />
           <div class="md:col-span-2">
             <FormField
               id="alamat"
@@ -60,6 +63,14 @@
               :error="jurusanError"
               hint="Pilih satu atau lebih program studi yang boleh memilih perusahaan ini."
             />
+          </div>
+          <div class="md:col-span-2">
+            <SwitchRow
+              v-model="form.is_active"
+              label="Perusahaan aktif"
+              hint="Perusahaan nonaktif tidak muncul sebagai pilihan tempat PKL."
+            />
+            <p v-if="fieldErrors.is_active" class="mt-1 text-xs text-red-600">{{ fieldErrors.is_active }}</p>
           </div>
         </div>
 
@@ -109,6 +120,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import MultiSelectChips from '../../components/MultiSelectChips.vue'
+import SwitchRow from '../../components/SwitchRow.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import MapView from '../../components/MapView.vue'
 import api, { getErrorMessage } from '../../services/api'
@@ -137,7 +149,11 @@ const form = reactive({
   deskripsi: '',
   latitude: '',
   longitude: '',
+  radius_presensi: '100',
+  pembimbing_industri: '',
+  bidang_usaha: '',
   jurusan_ids: [],
+  is_active: true,
 })
 
 const jurusanList = ref([])
@@ -157,6 +173,7 @@ const { errorOf, validate, touch, focusFirstError } = useFormValidation(
     kuota: [integer(), min(0)],
     latitude: [latitude()],
     longitude: [longitude()],
+    radius_presensi: [integer(), min(0)],
   },
   { external: () => fieldErrors.value }
 )
@@ -189,10 +206,11 @@ onMounted(async () => {
       tasks.push(
         api.get(`/api/perusahaan/${props.id}`).then(({ data }) => {
           const p = data.data
-          for (const key of ['nama', 'pimpinan', 'telp', 'email', 'kuota', 'alamat', 'deskripsi', 'latitude', 'longitude']) {
+          for (const key of ['nama', 'pimpinan', 'telp', 'email', 'kuota', 'alamat', 'deskripsi', 'latitude', 'longitude', 'radius_presensi', 'pembimbing_industri', 'bidang_usaha']) {
             form[key] = p[key] ?? ''
           }
           form.jurusan_ids = (p.jurusan ?? []).map((j) => j.id)
+          form.is_active = p.is_active == null ? true : !!p.is_active
         })
       )
     }
@@ -206,12 +224,19 @@ onMounted(async () => {
   }
 })
 
+// Kolom radius_presensi di BE tidak boleh NULL (default 100): jangan kirim jika dikosongkan.
+function buildValues() {
+  const values = { ...form }
+  if (values.radius_presensi === '' || values.radius_presensi == null) delete values.radius_presensi
+  return values
+}
+
 async function submit() {
   if (!validate()) return
   const ok = await save({
     mode: isEdit ? 'edit' : 'create',
     row: { id: props.id },
-    values: { ...form },
+    values: buildValues(),
   })
   if (ok) router.push(backTo)
   else focusFirstError()

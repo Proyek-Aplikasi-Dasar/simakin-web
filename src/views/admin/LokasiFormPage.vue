@@ -86,6 +86,7 @@
               v-model="form.perusahaan_id"
               label="Perusahaan"
               placeholder="Pilih perusahaan"
+              searchable
               :options="options.perusahaan"
               :hint="perusahaanHint"
               :error="local.perusahaan || fieldErrors.perusahaan_id || ''"
@@ -95,8 +96,28 @@
               v-model="form.gelombang_id"
               label="Gelombang PKL"
               placeholder="Pilih gelombang"
+              searchable
               :options="options.gelombang"
               :error="local.gelombang || fieldErrors.gelombang_id || ''"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <FormField
+              id="tanggal_mulai"
+              v-model="form.tanggal_mulai"
+              type="date"
+              label="Tanggal Mulai"
+              hint="Opsional. Kosongkan jika mengikuti periode gelombang."
+              :error="fieldErrors.tanggal_mulai || ''"
+            />
+            <FormField
+              id="tanggal_selesai"
+              v-model="form.tanggal_selesai"
+              type="date"
+              label="Tanggal Selesai"
+              :min="form.tanggal_mulai || undefined"
+              :error="local.tanggal_selesai || fieldErrors.tanggal_selesai || ''"
             />
           </div>
 
@@ -104,6 +125,8 @@
             id="guru"
             v-model="form.guru_id"
             label="Guru Pembimbing"
+            placeholder="Pilih guru pembimbing"
+            searchable
             :options="options.guru"
             hint="Boleh dikosongkan dan diisi nanti."
             :error="fieldErrors.guru_id || ''"
@@ -158,7 +181,14 @@ const pageTitle = isEdit ? 'Edit Penempatan' : 'Tambah Penempatan'
 const preselect = route.query.perusahaan_id ? String(route.query.perusahaan_id) : ''
 const backTo = ref(preselect ? `/admin/lokasi-penempatan/${preselect}` : '/admin/lokasi-penempatan')
 
-const form = reactive({ perusahaan_id: preselect, guru_id: 'none', gelombang_id: '', catatan: '' })
+const form = reactive({
+  perusahaan_id: preselect,
+  guru_id: 'none',
+  gelombang_id: '',
+  catatan: '',
+  tanggal_mulai: '',
+  tanggal_selesai: '',
+})
 const siswa = ref(null) 
 const options = reactive({ perusahaan: [], guru: [], gelombang: [] })
 
@@ -232,6 +262,8 @@ async function loadPenempatan() {
   form.guru_id = l.guru ? String(l.guru.id) : 'none'
   form.gelombang_id = l.gelombang ? String(l.gelombang.id) : ''
   form.catatan = l.catatan ?? ''
+  form.tanggal_mulai = l.tanggal_mulai ?? ''
+  form.tanggal_selesai = l.tanggal_selesai ?? ''
   if (l.perusahaan) backTo.value = `/admin/lokasi-penempatan/${l.perusahaan.id}`
 }
 
@@ -253,6 +285,9 @@ function validate() {
   if (!isEdit && !siswa.value) local.siswa = 'Pilih siswa terlebih dahulu.'
   if (!form.perusahaan_id) local.perusahaan = 'Pilih perusahaan.'
   if (!form.gelombang_id) local.gelombang = 'Pilih gelombang.'
+  if (form.tanggal_mulai && form.tanggal_selesai && form.tanggal_selesai < form.tanggal_mulai) {
+    local.tanggal_selesai = 'Tanggal selesai tidak boleh sebelum tanggal mulai.'
+  }
   return Object.keys(local).length === 0
 }
 
@@ -266,6 +301,8 @@ async function submit() {
     guru_id: form.guru_id === 'none' ? null : Number(form.guru_id),
     gelombang_id: Number(form.gelombang_id),
     catatan: form.catatan.trim() || null,
+    tanggal_mulai: form.tanggal_mulai || null,
+    tanggal_selesai: form.tanggal_selesai || null,
   }
 
   try {

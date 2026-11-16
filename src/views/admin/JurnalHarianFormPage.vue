@@ -31,7 +31,7 @@
 
               <div>
                 <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Tanggal</label>
-                <input v-model="form.tanggal" type="date" :disabled="isEdit" :class="[inputCls, isEdit ? 'bg-slate-50' : '']" />
+                <DatePicker v-model="form.tanggal" size="lg" :disabled="isEdit" />
                 <p v-if="errors.tanggal" class="mt-1 text-xs text-red-600">{{ errors.tanggal }}</p>
               </div>
             </div>
@@ -97,14 +97,17 @@
 import { ref, reactive, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { toIso } from '../../utils/siswa'
+import { useToastStore } from '../../stores/toast'
 import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import InfoAlert from '../../components/InfoAlert.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
 
 const props = defineProps({ id: { type: [String, Number], default: null } })
 const route = useRoute()
+const toast = useToastStore()
 
 const inputCls =
   'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200'
@@ -132,10 +135,7 @@ async function submit() {
   if (!form.kompetensi_id) errors.kompetensi_id = 'Kompetensi wajib dipilih.'
   if (Object.keys(errors).length) return
 
-  saving.value = true
-  try {
-  } finally {
-    saving.value = false
-  }
+  // TODO: sambungkan ke API begitu endpoint jurnal tersedia di BE (belum ada di routes/api.php).
+  toast.warning('Simpan jurnal belum tersedia: endpoint jurnal belum ada di backend.')
 }
 </script>

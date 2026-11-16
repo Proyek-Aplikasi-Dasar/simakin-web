@@ -14,7 +14,7 @@
         aria-controls="global-search-list"
         :aria-expanded="panelOpen"
         :aria-activedescendant="active >= 0 ? `gs-opt-${active}` : undefined"
-        placeholder="Cari siswa, perusahaan, menu…"
+        :placeholder="searchData ? 'Cari siswa, perusahaan, menu…' : 'Cari menu…'"
         class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
         @focus="open = true"
         @keydown="onKeydown"
@@ -30,7 +30,9 @@
       role="listbox"
       class="absolute left-0 top-12 z-30 max-h-[420px] w-[420px] max-w-[90vw] overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-lg"
     >
-      <p v-if="!term" class="px-4 py-3 text-xs text-slate-500">Ketik untuk mencari menu, siswa (nama / NIS), atau perusahaan.</p>
+      <p v-if="!term" class="px-4 py-3 text-xs text-slate-500">
+        {{ searchData ? 'Ketik untuk mencari menu, siswa (nama / NIS), atau perusahaan.' : 'Ketik untuk mencari menu.' }}
+      </p>
 
       <template v-else>
         <template v-for="s in sections" :key="s.title">
@@ -76,6 +78,8 @@ import AppIcon from './AppIcon.vue'
 
 const props = defineProps({
   menuItems: { type: Array, default: () => [] },
+  // false = hanya cari menu. Hasil siswa/perusahaan mengarah ke halaman /admin, jadi dimatikan untuk guru.
+  searchData: { type: Boolean, default: true },
 })
 
 const MIN_CHARS = 2
@@ -168,7 +172,7 @@ watch(q, () => {
   clearTimeout(timer)
   active.value = -1
   const t = term.value
-  if (t.length < MIN_CHARS) {
+  if (t.length < MIN_CHARS || !props.searchData) {
     seq++ 
     siswa.value = []
     perusahaan.value = []

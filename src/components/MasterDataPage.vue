@@ -109,7 +109,6 @@ import BaseTable from './BaseTable.vue'
 import BaseModal from './BaseModal.vue'
 import BaseFormField from './BaseFormField.vue'
 import FileUpload from './FileUpload.vue'
-import { useToastStore } from '../stores/toast'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -126,8 +125,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['save', 'delete', 'bulk-upload', 'clear-errors'])
-
-const toast = useToastStore()
 
 const showForm = ref(false)
 const editingRow = ref(null)
@@ -175,13 +172,9 @@ function confirmDelete() {
 const showUpload = ref(false)
 const selectedFile = ref(null)
 
+// Validasi format & ukuran sudah ditangani FileUploader; null = file dihapus
 function onFileSelected(file) {
-  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
-    selectedFile.value = null
-    toast.show('Format file harus .xlsx, .xls, atau .csv', 'error')
-    return
-  }
-  selectedFile.value = file
+  selectedFile.value = file ?? null
 }
 function closeUpload() {
   showUpload.value = false

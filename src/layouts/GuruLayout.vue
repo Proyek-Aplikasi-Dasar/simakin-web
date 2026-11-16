@@ -103,7 +103,7 @@
 
     <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-[72px] items-center justify-between gap-4 border-b border-slate-200 bg-white px-8">
-        <GlobalSearch :menu-items="searchMenu" />
+        <GlobalSearch :menu-items="searchMenu" :search-data="false" />
 
         <div class="flex items-center gap-3">
           <span class="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold leading-4 text-blue-600">
@@ -167,7 +167,7 @@ const today = new Date().toLocaleDateString('id-ID', {
   year: 'numeric',
 })
 
-// Item tanpa `to` tampil nonaktif ("Segera hadir") sampai halamannya di-slicing.
+// Item tanpa `to` tampil nonaktif
 const menu = [
   { title: 'UTAMA', items: [{ label: 'Dashboard', icon: 'dashboard', to: '/guru', exact: true }] },
   {
@@ -179,7 +179,7 @@ const menu = [
         children: [
           { label: 'Presensi Siswa', to: '/guru/presensi-siswa' },
           { label: 'Jurnal Harian' },
-          { label: 'Rekap Presensi & Jurnal' },
+          { label: 'Rekap Presensi & Jurnal', to: '/guru/rekap-presensi-jurnal' },
         ],
       },
       { label: 'Penilaian Bulanan', icon: 'chart' },
@@ -216,12 +216,8 @@ const searchMenu = menu.flatMap((g) =>
 
 const openGroups = ref({})
 
-function childActive(item) {
-  return (item.children ?? []).some((c) => c.to && route.path.startsWith(c.to))
-}
-
 function isOpen(item) {
-  return openGroups.value[item.label] ?? childActive(item)
+  return openGroups.value[item.label] ?? true
 }
 
 function toggle(item) {

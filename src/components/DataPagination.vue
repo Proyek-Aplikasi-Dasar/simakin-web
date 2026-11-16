@@ -4,7 +4,7 @@
       <template v-if="total">
         Menampilkan {{ from }}–{{ to }} dari {{ total.toLocaleString('id-ID') }} {{ itemLabel }}
       </template>
-      <template v-else>Tidak ada {{ itemLabel }}</template>
+      <template v-else>Tidak ada {{ emptyLabel || itemLabel }}</template>
     </p>
 
     <nav v-if="lastPage > 1" aria-label="Paginasi" class="flex items-center gap-1.5">
@@ -59,6 +59,7 @@ const props = defineProps({
   from: { type: Number, default: 0 },
   to: { type: Number, default: 0 },
   itemLabel: { type: String, default: 'data' },
+  emptyLabel: { type: String, default: '' },
 })
 const emit = defineEmits(['update:page'])
 

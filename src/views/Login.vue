@@ -273,6 +273,8 @@ async function handleLogin() {
       errorMsg.value = getErrorMessage(err, 'Data yang dimasukkan tidak valid.')
     } else if (err.response?.status === 419) {
       errorMsg.value = 'Sesi tidak valid, muat ulang halaman lalu coba lagi.'
+    } else if (err.response?.status === 429) {
+      errorMsg.value = 'Terlalu banyak percobaan. Coba lagi sebentar lagi.'
     } else if (!err.response) {
       errorMsg.value = 'Server tidak dapat dihubungi.'
     } else {

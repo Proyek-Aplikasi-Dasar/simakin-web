@@ -63,7 +63,7 @@
 
           <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
-            <input v-model="draft.tanggal" type="date" class="min-w-0 flex-1 bg-transparent outline-none" />
+            <DatePicker v-model="draft.tanggal" bare class="min-w-0 flex-1" />
           </label>
 
           <SelectDropdown
@@ -137,64 +137,25 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="filtered.length">Menampilkan {{ from }}–{{ to }} dari {{ filtered.length }} jurnal</template>
-            <template v-else>Tidak ada jurnal</template>
-          </span>
-
-          <div v-if="lastPage > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="page--"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="page = p"
-              >
-                {{ p }}
-              </button>
-            </template>
-
-            <button
-              type="button"
-              :disabled="page >= lastPage"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="page++"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="jurnal" />
       </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { toIso } from '../../utils/siswa'
 import { JURNAL_STATUS } from '../../utils/jurnal'
 import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
+import DataPagination from '../../components/DataPagination.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
+import { useSearchShortcut } from '../../composables/useSearchShortcut'
 
 const PAGE_SIZE = 5
 
@@ -217,6 +178,7 @@ const pembimbingItems = computed(() => [
 const page = ref(1)
 const tab = ref('semua')
 const searchInput = ref(null)
+useSearchShortcut(searchInput)
 
 const draft = reactive({ search: '', tanggal: toIso(new Date()), pembimbing: '' })
 const applied = reactive({ ...draft })
@@ -268,20 +230,6 @@ const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZ
 const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
 const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
-const pageItems = computed(() => {
-  const last = lastPage.value
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
-
 const detailLink = (r) =>
   r.jurnalId
     ? `/admin/jurnal-harian/${r.jurnalId}`
@@ -294,12 +242,4 @@ const editLink = (r) =>
 
 watch(tab, () => (page.value = 1))
 
-function onKey(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault()
-    searchInput.value?.focus()
-  }
-}
-onMounted(() => window.addEventListener('keydown', onKey))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>

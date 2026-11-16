@@ -19,7 +19,7 @@
         @click="exportCsv"
       >
         <AppIcon name="download" class="h-4 w-4" />
-        Export
+        Export CSV
       </button>
     </PageHeader>
 
@@ -59,7 +59,7 @@
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <CardHeader
           title="Riwayat Presensi"
-          :description="`Periode ${formatDate(applied.from, true)} – ${formatDate(applied.to, true)} · ${rekap.efektif} hari efektif.`"
+          :description="`Periode ${formatDate(periode.from, true)} – ${formatDate(periode.to, true)}${loading ? '' : ` · ${rekap.efektif} hari efektif`}.`"
         />
 
         <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
@@ -74,7 +74,9 @@
             @click="selectTab(t.key)"
           >
             {{ t.label }}
+            <span v-if="loading" class="h-[18px] w-6 animate-pulse rounded-full bg-slate-200"></span>
             <span
+              v-else
               :class="[
                 'rounded-full px-2 py-0.5 text-[11px]',
                 t.key === activeTab ? 'bg-blue-50 text-blue-600' : 'bg-slate-200 text-slate-500',
@@ -86,17 +88,10 @@
         </div>
 
         <form class="flex flex-wrap items-center justify-between gap-3 px-6 py-4" @submit.prevent="applyRange">
-          <div class="flex items-center gap-2">
-            <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
-              <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
-              <input v-model="range.from" type="date" :max="range.to" class="bg-transparent outline-none" />
-            </label>
-            <span class="text-xs text-slate-500">s/d</span>
-            <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
-              <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
-              <input v-model="range.to" type="date" :min="range.from" class="bg-transparent outline-none" />
-            </label>
-          </div>
+          <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+            <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
+            <DatePicker v-model="range.bulan" mode="month" :max="bulanIni" bare class="min-w-0 flex-1" />
+          </label>
           <button
             type="submit"
             class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100"
@@ -116,7 +111,7 @@
           </span>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat riwayat presensi…</p>
+        <SkeletonRows v-if="loading" :rows="7" :cols="4" :avatar="false" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="loadRows">
@@ -128,11 +123,12 @@
         </p>
 
         <div v-else class="divide-y divide-slate-100">
-          <div v-for="r in pageRows" :key="r.id" class="flex items-center gap-4 px-6 py-3.5">
-            <span class="w-[130px] text-xs leading-[18px] text-slate-900">{{ formatDate(r.tanggal, true) }}</span>
-            <span class="w-[90px] text-xs leading-[18px] text-slate-600">{{ hariName(r.tanggal) }}</span>
-            <span class="w-[110px] text-xs leading-[18px] text-slate-600">{{ jamOnly(r.jam_masuk) }}</span>
-            <div class="w-[110px]">
+          <div v-for="r in pageRows" :key="r.id" class="flex items-center gap-4 px-6 py-3">
+            <span class="w-[110px] text-xs leading-[18px] text-slate-600">{{ formatDate(r.tanggal, true) }}</span>
+            <span class="w-[80px] text-xs leading-[18px] text-slate-600">{{ hariName(r.tanggal) }}</span>
+            <span class="w-[96px] text-xs leading-[18px] text-slate-600">{{ jamOnly(r.jam_masuk) }}</span>
+            <span class="w-[96px] text-xs leading-[18px] text-slate-600">{{ jamShift(r) }}</span>
+            <div class="w-[90px]">
               <span
                 :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', ABSEN_STATUS[r.status]?.box]"
               >
@@ -144,7 +140,7 @@
               <AppIcon :name="r.status === 'hadir' && !r.keterangan ? 'building' : 'file'" class="h-4 w-4 shrink-0 text-slate-400" />
               <span class="truncate">{{ r.keterangan || (r.status === 'hadir' ? perusahaanNama : '—') }}</span>
             </span>
-            <div class="flex w-[60px] justify-end">
+            <div class="flex w-10 justify-end">
               <router-link
                 :to="`${backTo}/${r.id}`"
                 class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -157,46 +153,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="filtered.length">Menampilkan {{ from }}–{{ to }} dari {{ filtered.length }} hari</template>
-            <template v-else>Tidak ada data</template>
-          </span>
-          <div v-if="lastPage > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page - 1)"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="goTo(p)"
-              >
-                {{ p }}
-              </button>
-            </template>
-            <button
-              type="button"
-              :disabled="page >= lastPage"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page + 1)"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="hari" empty-label="data" />
       </section>
     </div>
   </div>
@@ -208,9 +165,9 @@ import api, { getErrorMessage } from '../../services/api'
 import { useAuthStore } from '../../stores/auth'
 import { useToastStore } from '../../stores/toast'
 import {
-  fetchAllPages,
   pickLokasi,
-  hitungKehadiran,
+  rentangEfektif,
+  hitungEfektif,
   formatDate,
   hariName,
   jamOnly,
@@ -220,6 +177,10 @@ import {
 import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
+import DataPagination from '../../components/DataPagination.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
+import { useListState } from '../../composables/useListState'
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -239,26 +200,47 @@ const tabs = [
 ]
 
 const columns = [
-  { label: 'Tanggal', width: 'w-[130px]', align: '' },
-  { label: 'Hari', width: 'w-[90px]', align: '' },
-  { label: 'Waktu Kirim', width: 'w-[110px]', align: '' },
-  { label: 'Status', width: 'w-[110px]', align: '' },
+  { label: 'Tanggal', width: 'w-[110px]', align: '' },
+  { label: 'Hari', width: 'w-[80px]', align: '' },
+  { label: 'Waktu Kirim', width: 'w-[96px]', align: '' },
+  { label: 'Jam Shift', width: 'w-[96px]', align: '' },
+  { label: 'Status', width: 'w-[90px]', align: '' },
   { label: 'Keterangan', width: 'flex-1', align: '' },
-  { label: '', width: 'w-[60px]', align: '' },
+  { label: '', width: 'w-10', align: '' },
 ]
 
-const today = new Date()
-const range = reactive({ from: toIso(new Date(today.getFullYear(), today.getMonth(), 1)), to: toIso(today) })
-const applied = reactive({ from: range.from, to: range.to })
+// Endpoint /api/absensi/siswa/{siswa}/periode bekerja per bulan (bulan + tahun), bukan rentang tanggal
+const bulanIni = toIso(new Date()).slice(0, 7)
+const range = reactive({ bulan: bulanIni })
+const applied = reactive({ bulan: bulanIni })
+
+const periode = computed(() => {
+  const [tahun, bulan] = applied.bulan.split('-').map(Number)
+  return { from: toIso(new Date(tahun, bulan - 1, 1)), to: toIso(new Date(tahun, bulan, 0)) }
+})
 
 const siswa = ref(null)
 const lokasi = ref(null)
 const rows = ref([])
+const rekapBe = ref({ hadir: 0, izin: 0, sakit: 0, libur: 0 })
 const loading = ref(true)
 const error = ref('')
 const forbidden = ref('')
 const activeTab = ref('semua')
 const page = ref(1)
+
+// Kembali dari detail presensi -> halaman, tab, dan bulan dipulihkan
+let restored = false
+useListState(`guru-riwayat-presensi-${props.id}`, ['/guru/presensi-siswa/'], {
+  snapshot: () => ({ page: page.value, tab: activeTab.value, bulan: applied.bulan }),
+  restore: (s) => {
+    restored = true
+    page.value = s.page
+    activeTab.value = s.tab
+    applied.bulan = s.bulan
+    range.bulan = s.bulan
+  },
+})
 
 const perusahaanNama = computed(() => lokasi.value?.perusahaan?.nama ?? '—')
 const subline = computed(() =>
@@ -267,35 +249,29 @@ const subline = computed(() =>
     : ''
 )
 
-const rekap = computed(() => hitungKehadiran(rows.value))
+// Hitungan hadir/izin/sakit/libur datang dari BE; hari efektif dihitung dari hari kerja pada periode
+// (dipotong masa PKL dan hari ini), sehingga hari tanpa presensi dihitung tidak hadir.
+const rekap = computed(() => {
+  const c = rekapBe.value
+  const total = c.hadir + c.izin + c.sakit + c.libur
+  const rentang = rentangEfektif(periode.value.from, periode.value.to, lokasi.value)
+  const efektif = hitungEfektif(c, rentang.from, rentang.to)
+  return { ...c, total, efektif, persen: efektif > 0 ? Math.round((c.hadir / efektif) * 100) : null }
+})
 const filtered = computed(() => (activeTab.value === 'semua' ? rows.value : rows.value.filter((r) => r.status === activeTab.value)))
 const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
 const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
 const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
 const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
-const pageItems = computed(() => {
-  const last = lastPage.value
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
-
 function selectTab(key) {
   activeTab.value = key
   page.value = 1
 }
 
-function goTo(p) {
-  if (p < 1 || p > lastPage.value || p === page.value) return
-  page.value = p
+// Jam shift hanya terisi untuk hari kerja; hari libur tidak punya shift
+function jamShift(r) {
+  return r.jam_shift_mulai && r.jam_shift_selesai ? `${jamOnly(r.jam_shift_mulai)}–${jamOnly(r.jam_shift_selesai)}` : '—'
 }
 
 // Username guru = NIP, dicocokkan ke guru.nip di lokasi PKL
@@ -323,14 +299,16 @@ async function loadRows() {
   loading.value = true
   error.value = ''
   try {
-    rows.value = await fetchAllPages('/api/absensi', {
-      siswa_id: props.id,
-      tanggal_mulai: applied.from,
-      tanggal_selesai: applied.to,
-    })
-    page.value = 1
+    const [tahun, bulan] = applied.bulan.split('-').map(Number)
+    const res = await api.get(`/api/absensi/siswa/${props.id}/periode`, { params: { bulan, tahun } })
+    rows.value = [...(res.data.data ?? [])].sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)))
+    rekapBe.value = { hadir: 0, izin: 0, sakit: 0, libur: 0, ...(res.data.rekap ?? {}) }
+    // Pertama kali memuat setelah state dipulihkan: pertahankan halaman yang tersimpan
+    if (restored) restored = false
+    else page.value = 1
   } catch (err) {
     rows.value = []
+    rekapBe.value = { hadir: 0, izin: 0, sakit: 0, libur: 0 }
     error.value = getErrorMessage(err, 'Gagal memuat riwayat presensi.')
   } finally {
     loading.value = false
@@ -338,12 +316,11 @@ async function loadRows() {
 }
 
 function applyRange() {
-  if (!range.from || !range.to || range.from > range.to) {
-    toast.show('Rentang tanggal tidak valid.', 'error')
+  if (!range.bulan || range.bulan > bulanIni) {
+    toast.show('Bulan tidak valid.', 'error')
     return
   }
-  applied.from = range.from
-  applied.to = range.to
+  applied.bulan = range.bulan
   loadRows()
 }
 
@@ -362,7 +339,7 @@ function exportCsv() {
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = `presensi-${siswa.value?.nis ?? props.id}-${applied.from}_${applied.to}.csv`
+  a.download = `presensi-${siswa.value?.nis ?? props.id}-${applied.bulan}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
+import { clearRequestCache } from '../utils/requestCache'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
@@ -10,8 +11,8 @@ const api = axios.create({
 })
 
 // Minta cookie XSRF-TOKEN ke Laravel (dipanggil sebelum login)
-export async function getCsrfCookie() {
-  await api.get('/sanctum/csrf-cookie')
+export async function getCsrfCookie(config) {
+  await api.get('/sanctum/csrf-cookie', config)
 }
 
 export function getErrorMessage(error, fallback = 'Terjadi kesalahan.') {
@@ -23,15 +24,26 @@ export function getErrorMessage(error, fallback = 'Terjadi kesalahan.') {
   return data?.message || fallback
 }
 
+// Request tulis (simpan/ubah/hapus/login/logout) membuat cache data daftar tidak valid lagi
+api.interceptors.request.use((config) => {
+  if ((config.method ?? 'get').toLowerCase() !== 'get') clearRequestCache()
+  return config
+})
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Request yang sengaja dibatalkan (AbortController/cancel) bukan error jaringan: jangan tampilkan toast
+    if (axios.isCancel(error)) return Promise.reject(error)
+
     const { response, config } = error
     const toast = useToastStore()
+    // Request dengan { skipErrorToast: true } menampilkan errornya sendiri (mis. pesan inline di form login)
+    const quiet = !!config?.skipErrorToast
 
     // Tidak ada response: server mati / jaringan putus / CORS gagal
     if (!response) {
-      toast.show('Server tidak dapat dihubungi. Periksa koneksi internet.', 'error')
+      if (!quiet) toast.show('Server tidak dapat dihubungi. Periksa koneksi internet.', 'error')
       return Promise.reject(error)
     }
 
@@ -68,12 +80,12 @@ api.interceptors.response.use(
 
     // 429: terlalu banyak request
     else if (status === 429) {
-      toast.show('Terlalu banyak percobaan. Coba lagi sebentar lagi.', 'error')
+      if (!quiet) toast.show('Terlalu banyak percobaan. Coba lagi sebentar lagi.', 'error')
     }
 
     // 5xx: error server
     else if (status >= 500) {
-      toast.show('Terjadi kesalahan pada server.', 'error')
+      if (!quiet) toast.show('Terjadi kesalahan pada server.', 'error')
     }
 
     // 422 (validasi) sengaja tidak ditangani di sini: ditampilkan oleh form masing-masing

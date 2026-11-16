@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api, { getCsrfCookie } from '../services/api'
 import { ROLE_MAP, WEB_ROLES, HOME_BY_ROLE } from '../constants/roles'
+import { clearRequestCache } from '../utils/requestCache'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -23,6 +24,7 @@ export const useAuthStore = defineStore('auth', {
     clear() {
       this.user = null
       this.role = null
+      clearRequestCache()
     },
 
     async fetchUser() {
@@ -40,8 +42,9 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(username, password) {
-      await getCsrfCookie()
-      const { data } = await api.post('/api/login', { username, password })
+      // skipErrorToast: error login ditampilkan inline oleh Login.vue, jangan dobel dengan toast
+      await getCsrfCookie({ skipErrorToast: true })
+      const { data } = await api.post('/api/login', { username, password }, { skipErrorToast: true })
       this.setUser(data.user)
 
       if (!WEB_ROLES.includes(this.role)) {
@@ -50,13 +53,11 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // Logout optimistis: sesi lokal dibersihkan seketika supaya UI langsung pindah ke login.
+    // Request ke server tetap dikirim di belakang layar (server bisa lambat/antre).
     async logout() {
-      try {
-        await api.post('/api/logout', null, { skipAuthRedirect: true })
-      } catch {
-      } finally {
-        this.clear()
-      }
+      this.clear()
+      api.post('/api/logout', null, { skipAuthRedirect: true, skipErrorToast: true }).catch(() => {})
     },
   },
 })

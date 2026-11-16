@@ -28,6 +28,52 @@
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
             <FormField id="name" v-model="form.name" label="Nama Lengkap (beserta gelar)" placeholder="Masukkan nama lengkap" :error="err('name')" />
             <FormField id="nip" v-model="form.nip" label="NIP" placeholder="Masukkan NIP" :error="local.nip || fieldErrors.nip || fieldErrors.username || ''" />
+            <FormField
+              id="telp"
+              v-model="form.telp"
+              type="tel"
+              inputmode="tel"
+              label="No. Telepon"
+              placeholder="Contoh: 081234567890"
+              :maxlength="20"
+              :error="err('telp')"
+            />
+            <FormField
+              id="jurusan"
+              v-model="form.jurusan_id"
+              label="Jurusan"
+              placeholder="Pilih jurusan"
+              :options="jurusanOptions"
+              hint="Opsional."
+              :error="err('jurusan_id')"
+            />
+            <FormField
+              id="kuota_bimbingan"
+              v-model="form.kuota_bimbingan"
+              type="number"
+              inputmode="numeric"
+              :min="0"
+              label="Kuota Bimbingan"
+              placeholder="Jumlah maksimal siswa bimbingan"
+              suffix="siswa"
+              :error="err('kuota_bimbingan')"
+            />
+            <FormField
+              id="alamat"
+              v-model="form.alamat"
+              class="md:col-span-2"
+              textarea
+              :rows="3"
+              label="Alamat"
+              placeholder="Alamat lengkap (opsional)"
+              :error="err('alamat')"
+            />
+            <SwitchRow
+              v-model="form.is_active"
+              class="md:col-span-2"
+              label="Status aktif"
+              hint="Guru nonaktif tidak muncul sebagai pilihan pembimbing."
+            />
           </div>
 
           <template #footer>
@@ -114,7 +160,19 @@ const isEdit = !!props.id
 const pageTitle = isEdit ? 'Edit Guru' : 'Tambah Guru'
 const backTo = '/admin/master-data/guru'
 
-const form = reactive({ name: '', nip: '', akun_otomatis: true, password: '', password_confirmation: '' })
+const form = reactive({
+  name: '',
+  nip: '',
+  telp: '',
+  jurusan_id: 'none',
+  kuota_bimbingan: '',
+  alamat: '',
+  is_active: true,
+  akun_otomatis: true,
+  password: '',
+  password_confirmation: '',
+})
+const jurusanOptions = ref([{ value: 'none', label: 'Belum ditentukan' }])
 const alokasi = ref([])
 const loadingData = ref(isEdit)
 const loadError = ref('')
@@ -136,6 +194,11 @@ async function loadGuru() {
     ])
     form.name = g.data.data.user?.name ?? ''
     form.nip = g.data.data.nip ?? ''
+    form.telp = g.data.data.telp ?? ''
+    form.jurusan_id = g.data.data.jurusan_id ? String(g.data.data.jurusan_id) : 'none'
+    form.kuota_bimbingan = g.data.data.kuota_bimbingan != null ? String(g.data.data.kuota_bimbingan) : ''
+    form.alamat = g.data.data.alamat ?? ''
+    form.is_active = g.data.data.is_active == null ? true : !!g.data.data.is_active
     alokasi.value = l.filter((x) => x.status === 'active')
   } catch (e) {
     loadError.value = getErrorMessage(e, 'Gagal memuat data guru.')
@@ -150,6 +213,9 @@ function validate() {
 
   if (!form.name.trim()) local.name = 'Kolom ini wajib diisi'
   if (!nip) local.nip = 'Kolom ini wajib diisi'
+  if (form.kuota_bimbingan !== '' && !/^\d+$/.test(String(form.kuota_bimbingan))) {
+    local.kuota_bimbingan = 'Kuota harus berupa bilangan bulat 0 atau lebih.'
+  }
 
   if (!isEdit && form.akun_otomatis) {
     if (nip && nip.length < 8) {
@@ -167,7 +233,16 @@ async function submit() {
   if (saving.value || !validate()) return
 
   const nip = form.nip.trim()
-  const values = { name: form.name.trim(), nip, username: nip }
+  const values = {
+    name: form.name.trim(),
+    nip,
+    username: nip,
+    telp: form.telp.trim() || null,
+    jurusan_id: form.jurusan_id === 'none' ? null : Number(form.jurusan_id),
+    kuota_bimbingan: form.kuota_bimbingan === '' ? null : Number(form.kuota_bimbingan),
+    alamat: form.alamat.trim() || null,
+    is_active: form.is_active,
+  }
 
   if (!isEdit && form.akun_otomatis) {
     values.password = nip
@@ -181,7 +256,20 @@ async function submit() {
   if (ok) router.push(backTo)
 }
 
+async function loadJurusan() {
+  try {
+    const list = await fetchAllPages('/api/jurusan')
+    jurusanOptions.value = [
+      { value: 'none', label: 'Belum ditentukan' },
+      ...list.map((j) => ({ value: String(j.id), label: j.kode ? `${j.nama} (${j.kode})` : j.nama })),
+    ]
+  } catch {
+    // opsional: form tetap bisa dipakai tanpa pilihan jurusan
+  }
+}
+
 onMounted(() => {
+  loadJurusan()
   if (isEdit) loadGuru()
 })
 </script>

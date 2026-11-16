@@ -252,6 +252,16 @@ const routes = [
         component: () => import('../views/admin/AkunFormPage.vue'),
         props: true,
       },
+      {
+        path: 'profil',
+        name: 'admin-profil',
+        component: () => import('../views/admin/ProfilView.vue'),
+      },
+      {
+        path: 'profil/edit',
+        name: 'admin-profil-edit',
+        component: () => import('../views/admin/EditProfilPage.vue'),
+      },
       ...masterFormRoutes('jurusan'),
       ...masterFormRoutes('kompetensi'),
       ...masterFormRoutes('gelombang'),
@@ -296,6 +306,11 @@ const routes = [
         component: () => import('../views/guru/PresensiSiswaView.vue'),
       },
       {
+        path: 'presensi-siswa/tambah',
+        name: 'guru-presensi-tambah',
+        component: () => import('../views/admin/PresensiSiswaFormPage.vue'),
+      },
+      {
         path: 'presensi-siswa/siswa/:id',
         name: 'guru-presensi-riwayat',
         component: () => import('../views/guru/RiwayatPresensiSiswaPage.vue'),
@@ -312,6 +327,11 @@ const routes = [
         name: 'guru-presensi-detail',
         component: () => import('../views/guru/PresensiSiswaDetailPage.vue'),
         props: true,
+      },
+      {
+        path: 'rekap-presensi-jurnal',
+        name: 'guru-rekap-presensi-jurnal',
+        component: () => import('../views/guru/RekapPresensiJurnalPage.vue'),
       },
     ],
   },

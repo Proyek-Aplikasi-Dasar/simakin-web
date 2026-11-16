@@ -26,7 +26,7 @@
 
     <div class="flex flex-col gap-6">
       <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -85,7 +85,7 @@
             class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200"
           >
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
-            <input v-model="draftBulan" type="month" class="min-w-0 flex-1 bg-transparent outline-none" />
+            <DatePicker v-model="draftBulan" mode="month" bare class="min-w-0 flex-1" />
           </label>
 
           <button
@@ -121,7 +121,7 @@
             type="button"
             :disabled="bulkLoading"
             class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            @click="approveSelected"
+            @click="showBulkDialog = true"
           >
             {{ bulkLoading ? 'Memproses...' : 'Setujui Terpilih' }}
           </button>
@@ -143,7 +143,7 @@
           <span class="w-[120px] text-right text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Aksi</span>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data pengajuan…</p>
+        <SkeletonRows v-if="loading" :rows="6" :cols="3" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button
@@ -269,6 +269,14 @@
         </div>
       </section>
     </div>
+
+    <BulkApproveDialog
+      :show="showBulkDialog"
+      :count="selected.length"
+      :loading="bulkLoading"
+      @cancel="showBulkDialog = false"
+      @confirm="approveSelected"
+    />
   </div>
 </template>
 
@@ -282,7 +290,10 @@ import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
+import BulkApproveDialog from '../../components/BulkApproveDialog.vue'
 import { useListState } from '../../composables/useListState'
 
 const toast = useToastStore()
@@ -323,6 +334,7 @@ useListState('pengajuan-pkl', ['/admin/pengajuan-pkl/'], {
 
 const selected = ref([])
 const bulkLoading = ref(false)
+const showBulkDialog = ref(false)
 
 function normalize(p, alamatById) {
   const jurusan = p.siswa?.jurusan?.kode || p.siswa?.jurusan?.nama
@@ -488,11 +500,13 @@ function clearSelection() {
   selected.value = []
 }
 
-async function approveSelected() {
+async function approveSelected(guruId = null) {
   if (bulkLoading.value || !selected.value.length) return
   bulkLoading.value = true
   try {
-    const { data } = await api.put('/api/pengajuan-pkl/bulk-approve', { ids: selected.value })
+    const payload = { ids: selected.value }
+    if (guruId) payload.guru_pembimbing_id = guruId
+    const { data } = await api.put('/api/pengajuan-pkl/bulk-approve', payload)
     const approved = data.approved?.length ?? 0
     const failed = data.failed ?? []
 
@@ -506,6 +520,7 @@ async function approveSelected() {
       toast.show(`${approved} pengajuan disetujui.`)
     }
 
+    showBulkDialog.value = false
     clearSelection()
     await load()
   } catch (err) {

@@ -169,6 +169,7 @@ const importEndpoints = {
   Guru: '/api/guru/bulk-upload',
   Perusahaan: '/api/perusahaan/bulk-upload',
   Kompetensi: '/api/kompetensi/bulk-upload',
+  Akun: '/api/users/bulk-upload',
 }
 const importOptions = computed(() =>
   Object.keys(importEndpoints).map((label) => ({ value: label, label }))
@@ -216,6 +217,7 @@ const templates = [
   { label: 'Perusahaan', type: 'perusahaan', icon: 'building', tone: 'amber' },
   { label: 'Program Studi', type: '', icon: 'cap', tone: 'blue' },
   { label: 'Kompetensi', type: 'kompetensi', icon: 'clipboard-list', tone: 'blue' },
+  { label: 'Akun', type: 'akun', icon: 'shield', tone: 'blue' },
   { label: 'Gelombang PKL', type: '', icon: 'calendar-check', tone: 'green' },
 ]
 

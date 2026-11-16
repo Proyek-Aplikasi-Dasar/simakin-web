@@ -70,6 +70,7 @@
             <div v-else class="grid grid-cols-1 gap-5 md:grid-cols-2">
               <InfoItem icon="arrow-right" label="Waktu Kirim Presensi" :value="jamKirim" />
               <InfoItem icon="calendar-check" label="Status Kehadiran" :value="statusInfo.label" />
+              <InfoItem v-if="jamShift" icon="hourglass" label="Jam Shift" :value="jamShift" />
               <template v-if="status === 'libur'">
                 <InfoItem v-if="absensi.keterangan" icon="file" label="Kategori Libur" :value="absensi.keterangan" />
                 <InfoItem icon="building" label="Mitra DU/DI" :value="lokasi?.perusahaan?.nama" />
@@ -83,6 +84,13 @@
                 />
                 <InfoItem v-else icon="pin" label="Lokasi Presensi" :value="perusahaan?.alamat" />
               </template>
+              <InfoItem
+                v-if="absensi.status_submit === 'failed'"
+                icon="alert"
+                label="Status Pengiriman"
+                value="Gagal terkirim"
+                hint="Siswa belum berhasil menyelesaikan pengiriman presensi (mis. unggah foto)."
+              />
               <InfoItem v-if="absensi.korektor" icon="pencil" label="Dikoreksi Oleh" :value="absensi.korektor.name" />
             </div>
           </FormCard>
@@ -117,7 +125,7 @@
                   <p class="text-xs text-slate-500">Koordinat tidak tersedia.</p>
                 </div>
                 <div v-if="adaPeta" class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
-                  <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-blue-600/40 ring-1 ring-blue-600"></span>Radius {{ RADIUS_PRESENSI_METER }} m</span>
+                  <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-blue-600/40 ring-1 ring-blue-600"></span>Radius {{ radiusMeter }} m</span>
                   <span v-if="koordKirim" class="inline-flex items-center gap-1.5">
                     <span :class="['h-2.5 w-2.5 rounded-full', dalamRadius ? 'bg-emerald-700' : 'bg-red-700']"></span>Lokasi siswa
                   </span>
@@ -139,7 +147,7 @@
                   {{ dalamRadius ? 'Di dalam radius' : 'Di luar radius' }}
                 </span>
                 <InfoItem icon="building" label="Perusahaan" :value="lokasi?.perusahaan?.nama" />
-                <InfoItem icon="crosshair" label="Radius Presensi" :value="`${RADIUS_PRESENSI_METER} meter`" />
+                <InfoItem icon="crosshair" label="Radius Presensi" :value="`${radiusMeter} meter`" />
                 <InfoItem icon="pin" label="Lokasi Kirim Siswa" :value="koordinatSiswa" />
                 <InfoItem icon="crosshair" label="Jarak ke Perusahaan" :value="formatJarak(jarak)" />
               </div>
@@ -157,7 +165,34 @@
           </section>
 
           <template v-else>
-            <FormCard :title="fotoTitle" :description="fotoDesc">
+            <FormCard
+              v-if="adaLampiran && !isBelum"
+              title="Surat Keterangan"
+              :description="`Berkas pendukung ${statusInfo.label.toLowerCase()} yang dilampirkan siswa.`"
+            >
+              <template v-if="berkas">
+                <img v-if="berkasGambar" :src="berkas" alt="" class="max-h-[360px] w-full rounded-xl bg-slate-100 object-cover" />
+                <div v-else class="flex h-[140px] flex-col items-center justify-center gap-2 rounded-xl bg-slate-200 text-center">
+                  <AppIcon name="file" class="h-6 w-6 text-slate-400" />
+                  <p class="text-sm font-semibold text-slate-900">Berkas dokumen</p>
+                </div>
+                <a
+                  :href="berkas"
+                  target="_blank"
+                  rel="noopener"
+                  class="mt-3 flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50"
+                >
+                  <AppIcon name="download" class="h-4 w-4" />
+                  Buka berkas
+                </a>
+              </template>
+              <div v-else class="flex h-[140px] flex-col items-center justify-center gap-2 rounded-xl bg-slate-200 text-center">
+                <AppIcon name="file" class="h-6 w-6 text-slate-400" />
+                <p class="text-sm font-semibold text-slate-900">Tidak ada berkas pendukung</p>
+              </div>
+            </FormCard>
+
+            <FormCard v-if="!adaLampiran || foto" :title="fotoTitle" :description="fotoDesc">
               <img v-if="foto" :src="foto" alt="" class="max-h-[360px] w-full rounded-xl bg-slate-100 object-cover" />
               <div v-else class="flex h-[260px] flex-col items-center justify-center gap-2 rounded-xl bg-slate-200 text-center">
                 <AppIcon name="smartphone" class="h-6 w-6 text-slate-400" />
@@ -194,13 +229,14 @@ import 'leaflet/dist/leaflet.css'
 import { useRoute } from 'vue-router'
 import api, { getErrorMessage } from '../../services/api'
 import { pickLokasi, formatDate, hariName, jamOnly } from '../../utils/siswa'
-import { PRESENSI_STATUS, fotoUrl, jarakMeter, formatJarak } from '../../utils/presensi'
+import { PRESENSI_STATUS, fotoUrl, isGambar, jarakMeter, formatJarak } from '../../utils/presensi'
 import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
 
-const RADIUS_PRESENSI_METER = 100
+// Default sama dengan default kolom perusahaan.radius_presensi di BE (dipakai jika data belum termuat / kosong)
+const RADIUS_DEFAULT_METER = 100
 
 const props = defineProps({ id: { type: [String, Number], default: null }, siswaId: { type: [String, Number], default: null } })
 const route = useRoute()
@@ -211,6 +247,7 @@ const absensi = ref(null)
 const siswa = ref(null)
 const lokasi = ref(null)
 const perusahaan = ref(null)
+const radiusMeter = computed(() => perusahaan.value?.radius_presensi ?? RADIUS_DEFAULT_METER)
 const waktuAbsen = ref(null)
 
 const isBelum = computed(() => !props.id)
@@ -238,8 +275,16 @@ const waktuFoto = computed(() => {
 
 const foto = computed(() => fotoUrl(absensi.value?.foto_masuk))
 const adaLampiran = computed(() => status.value === 'izin' || status.value === 'sakit')
-const fotoTitle = computed(() => (adaLampiran.value ? 'Surat Keterangan' : 'Foto Selfie'))
-const fotoDesc = computed(() => (adaLampiran.value ? 'Siswa melampirkan foto atau berkas.' : 'Diambil saat mengirim presensi.'))
+const berkas = computed(() => fotoUrl(absensi.value?.berkas_pendukung))
+const berkasGambar = computed(() => isGambar(absensi.value?.berkas_pendukung))
+const jamShift = computed(() => {
+  const mulai = absensi.value?.jam_shift_mulai
+  const selesai = absensi.value?.jam_shift_selesai
+  if (!mulai && !selesai) return ''
+  return `${mulai ? jamOnly(mulai) : '—'} – ${selesai ? jamOnly(selesai) : '—'} WIB`
+})
+const fotoTitle = computed(() => (adaLampiran.value ? 'Foto Presensi' : 'Foto Selfie'))
+const fotoDesc = computed(() => (adaLampiran.value ? 'Foto yang dikirim siswa saat presensi.' : 'Diambil saat mengirim presensi.'))
 
 const lat = computed(() => absensi.value?.latitude)
 const lng = computed(() => absensi.value?.longitude)
@@ -247,7 +292,7 @@ const hasKoordinat = computed(() => lat.value != null && lng.value != null)
 const koordinatSiswa = computed(() => (hasKoordinat.value ? `${Number(lat.value).toFixed(4)}, ${Number(lng.value).toFixed(4)}` : ''))
 
 const jarak = computed(() => jarakMeter(lat.value, lng.value, perusahaan.value?.latitude, perusahaan.value?.longitude))
-const dalamRadius = computed(() => jarak.value != null && jarak.value <= RADIUS_PRESENSI_METER)
+const dalamRadius = computed(() => jarak.value != null && jarak.value <= radiusMeter.value)
 
 const pilihPeta = ref('semua')
 const mapEl = ref(null)
@@ -273,7 +318,7 @@ function fokus() {
   if (!map) return
   const pusat = koordPerusahaan.value
   const siswaPos = koordKirim.value
-  const batasLingkaran = pusat ? L.latLng(pusat).toBounds(RADIUS_PRESENSI_METER * 2) : null
+  const batasLingkaran = pusat ? L.latLng(pusat).toBounds(radiusMeter.value * 2) : null
   let batas = null
   if (pilihPeta.value === 'perusahaan') batas = batasLingkaran
   else if (pilihPeta.value === 'siswa') batas = null
@@ -297,9 +342,9 @@ function initMap() {
 
   const namaPerusahaan = lokasi.value?.perusahaan?.nama ?? 'Perusahaan'
   if (koordPerusahaan.value) {
-    L.circle(koordPerusahaan.value, { radius: RADIUS_PRESENSI_METER, color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.25, weight: 2 })
+    L.circle(koordPerusahaan.value, { radius: radiusMeter.value, color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.25, weight: 2 })
       .addTo(map)
-      .bindTooltip(`${namaPerusahaan} (radius ${RADIUS_PRESENSI_METER} m)`)
+      .bindTooltip(`${namaPerusahaan} (radius ${radiusMeter.value} m)`)
     L.circleMarker(koordPerusahaan.value, { radius: 6, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 })
       .addTo(map)
       .bindTooltip(namaPerusahaan)

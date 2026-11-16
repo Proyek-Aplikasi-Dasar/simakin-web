@@ -57,6 +57,15 @@
               :class="[inputBase, 'h-auto py-2.5', fieldErrors[f.key] ? 'border-red-500' : 'border-slate-200']"
             ></textarea>
 
+            <DatePicker
+              v-else-if="f.type === 'date'"
+              :id="f.key"
+              v-model="form[f.key]"
+              size="lg"
+              clearable
+              :error="!!fieldErrors[f.key]"
+            />
+
             <input
               v-else
               :id="f.key"
@@ -67,6 +76,11 @@
             />
 
             <p v-if="fieldErrors[f.key]" class="mt-1 text-xs text-red-600">{{ fieldErrors[f.key] }}</p>
+          </div>
+
+          <div class="md:col-span-2">
+            <SwitchRow v-model="form.is_active" :label="cfg.statusLabel" :hint="cfg.statusHint" />
+            <p v-if="fieldErrors.is_active" class="mt-1 text-xs text-red-600">{{ fieldErrors.is_active }}</p>
           </div>
         </div>
       </div>
@@ -93,6 +107,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '../../components/PageHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DatePicker from '../../components/DatePicker.vue'
+import SwitchRow from '../../components/SwitchRow.vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useMasterResource, fetchAll } from '../../composables/useMasterResource'
 
@@ -114,6 +130,7 @@ const CONFIG = {
     fields: [
       { key: 'kode', label: 'Kode', placeholder: 'Masukkan kode' },
       { key: 'nama', label: 'Nama Program Studi', placeholder: 'Masukkan nama program studi' },
+      { key: 'bidang_keahlian', label: 'Bidang Keahlian (opsional)', placeholder: 'Contoh: Teknologi Informasi dan Komunikasi' },
     ],
   },
   gelombang: {
@@ -170,7 +187,7 @@ const backTo = { name: 'data-master', query: { tab: props.type } }
 const inputBase =
   'h-10 w-full rounded-xl border bg-white px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100'
 
-const form = reactive({})
+const form = reactive({ is_active: true })
 cfg.fields.forEach((f) => (form[f.key] = ''))
 
 const jurusanList = ref([])
@@ -191,6 +208,7 @@ onMounted(async () => {
       tasks.push(
         api.get(`${cfg.endpoint}/${props.id}`).then(({ data }) => {
           cfg.fields.forEach((f) => (form[f.key] = data.data[f.key] ?? ''))
+          form.is_active = data.data.is_active == null ? true : !!data.data.is_active
         })
       )
     }

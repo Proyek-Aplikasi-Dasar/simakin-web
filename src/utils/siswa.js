@@ -1,6 +1,7 @@
 import api from '../services/api'
+import { cachedRequest } from './requestCache'
 
-export async function fetchAllPages(url, params = {}) {
+async function loadAllPages(url, params) {
   const first = await api.get(url, { params: { ...params, page: 1 } })
   const last = first.data.meta?.last_page ?? 1
   let rows = first.data.data
@@ -11,6 +12,16 @@ export async function fetchAllPages(url, params = {}) {
     rows = rows.concat(...rest.map((r) => r.data.data))
   }
   return rows
+}
+
+function ttlFor(url) {
+  return url.startsWith('/api/absensi') ? 10_000 : 60_000
+}
+
+export async function fetchAllPages(url, params = {}) {
+  const key = `${url}?${JSON.stringify(params)}`
+  const rows = await cachedRequest(key, () => loadAllPages(url, params), ttlFor(url))
+  return rows.slice()
 }
 
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -89,6 +100,36 @@ export function groupBySiswa(lokasiList) {
   const picked = new Map()
   groups.forEach((list, id) => picked.set(id, pickLokasi(list)))
   return picked
+}
+
+// Jumlah hari kerja (Senin–Jumat) antara dua tanggal ISO, inklusif. 0 bila from > to.
+export function hariKerja(from, to) {
+  const a = parseDate(from)
+  const b = parseDate(to)
+  if (!a || !b || a > b) return 0
+  let n = 0
+  for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
+    const w = d.getDay()
+    if (w !== 0 && w !== 6) n++
+  }
+  return n
+}
+
+// Potong periode ke masa PKL siswa (tanggal_mulai/selesai) dan hari ini, supaya hari yang belum terjadi tidak dihitung bolos.
+export function rentangEfektif(from, to, lokasi, today = toIso(new Date())) {
+  let awal = from
+  let akhir = to < today ? to : today
+  const mulai = lokasi?.tanggal_mulai ? String(lokasi.tanggal_mulai).slice(0, 10) : null
+  const selesai = lokasi?.tanggal_selesai ? String(lokasi.tanggal_selesai).slice(0, 10) : null
+  if (mulai && mulai > awal) awal = mulai
+  if (selesai && selesai < akhir) akhir = selesai
+  return { from: awal, to: akhir }
+}
+
+// Hari efektif = hari kerja dalam rentang dikurangi libur. Hari tanpa catatan presensi dihitung tidak hadir,
+// dan tidak pernah lebih kecil dari presensi yang tercatat (hadir + izin + sakit).
+export function hitungEfektif(c, from, to) {
+  return Math.max(c.hadir + c.izin + c.sakit, hariKerja(from, to) - c.libur)
 }
 
 export function hitungKehadiran(rows) {

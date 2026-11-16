@@ -11,6 +11,9 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
 // Ikon marker bawaan Leaflet tidak ikut ter-bundle oleh Vite, jadi diarahkan manual.
+// _getIconUrl dihapus: bawaannya menempelkan path hasil deteksi CSS di depan URL dari Vite,
+// sehingga gambar marker rusak (tampil sebagai teks alt "Marker").
+delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,

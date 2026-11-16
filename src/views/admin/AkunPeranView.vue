@@ -16,7 +16,7 @@
 
     <div class="flex flex-col gap-6">
       <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loadingCounts" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -49,6 +49,7 @@
             >
               {{ counts[tab.key] }}
             </span>
+            <span v-else-if="loadingCounts" class="h-[18px] w-6 animate-pulse rounded-full bg-slate-200"></span>
           </button>
         </div>
 
@@ -96,7 +97,22 @@
           </span>
         </div>
 
-        <p v-if="loading && !rows.length" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data akun…</p>
+        <div v-if="loading && !rows.length" class="divide-y divide-slate-100" role="status" aria-busy="true" aria-label="Memuat data akun">
+          <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-6 py-3">
+            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+              <span class="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200"></span>
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <span class="h-3 w-36 max-w-full animate-pulse rounded bg-slate-200"></span>
+                <span class="h-2.5 w-44 max-w-full animate-pulse rounded bg-slate-100"></span>
+              </div>
+            </div>
+            <span class="h-3 w-[140px] animate-pulse rounded bg-slate-200"></span>
+            <span class="h-6 w-[90px] animate-pulse rounded-full bg-slate-100"></span>
+            <div class="flex w-[140px] justify-end gap-2">
+              <span v-for="b in 3" :key="b" class="h-10 w-10 animate-pulse rounded-xl bg-slate-100"></span>
+            </div>
+          </div>
+        </div>
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button
@@ -166,50 +182,15 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="meta.total">Menampilkan {{ meta.from }}–{{ meta.to }} dari {{ meta.total }} akun</template>
-            <template v-else>Tidak ada akun</template>
-          </span>
-
-          <div v-if="meta.last_page > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1 || loading"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page - 1)"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :disabled="loading"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="goTo(p)"
-              >
-                {{ p }}
-              </button>
-            </template>
-
-            <button
-              type="button"
-              :disabled="page >= meta.last_page || loading"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page + 1)"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination
+          :page="page"
+          :last-page="meta.last_page"
+          :total="meta.total"
+          :from="meta.from"
+          :to="meta.to"
+          item-label="akun"
+          @update:page="goTo"
+        />
       </section>
     </div>
 
@@ -231,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useAuthStore } from '../../stores/auth'
 import { useToastStore } from '../../stores/toast'
@@ -241,9 +222,11 @@ import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import DataPagination from '../../components/DataPagination.vue'
 import ResetPasswordDialog from '../../components/ResetPasswordDialog.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
+import { useSearchShortcut } from '../../composables/useSearchShortcut'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -281,6 +264,7 @@ const error = ref('')
 const page = ref(1)
 const meta = reactive({ total: 0, from: 0, to: 0, last_page: 1 })
 const counts = reactive({ semua: null, admin: null, guru: null, siswa: null })
+const loadingCounts = ref(true)
 
 
 const draftSearch = ref('')
@@ -303,6 +287,7 @@ useListState('akun-peran', ['/admin/akun-peran/'], {
   },
 })
 const searchInput = ref(null)
+useSearchShortcut(searchInput)
 
 const stats = computed(() => [
   { label: 'Total Akun', icon: 'users', tone: 'blue', value: counts.semua, hint: 'terdaftar di sistem' },
@@ -367,6 +352,7 @@ async function loadCounts() {
       }
     })
   )
+  loadingCounts.value = false
 }
 
 function applyFilters() {
@@ -386,21 +372,6 @@ function goTo(p) {
   page.value = p
   loadUsers()
 }
-
-const pageItems = computed(() => {
-  const last = meta.last_page
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
 
 async function confirmDelete() {
   const target = userToDelete.value
@@ -423,17 +394,8 @@ async function confirmDelete() {
   }
 }
 
-function onKeydown(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault()
-    searchInput.value?.focus()
-  }
-}
-
 onMounted(() => {
-  window.addEventListener('keydown', onKeydown)
   loadUsers()
   loadCounts()
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>

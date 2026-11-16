@@ -35,6 +35,13 @@
             Di BE ada {{ jumlahLain }} jam presensi lain. Halaman ini hanya menampilkan dan mengubah yang pertama.
           </p>
 
+          <SwitchRow
+            v-model="aktif"
+            label="Jam presensi aktif"
+            hint="Jika dinonaktifkan, jam ini tidak dipakai untuk membatasi presensi siswa."
+          />
+          <p v-if="fieldErrors.is_active" class="-mt-3 text-xs text-red-600">{{ fieldErrors.is_active }}</p>
+
           <div class="pointer-events-none opacity-60" title="Menunggu kolom dari BE">
             <SwitchRow
               v-model="selfie"
@@ -86,6 +93,7 @@ const ENDPOINT = '/api/waktu-absen'
 
 const form = reactive({ mulai: '', selesai: '' })
 const selfie = ref(true)
+const aktif = ref(true)
 const current = ref(null) 
 const jumlahLain = ref(0)
 const loading = ref(true)
@@ -96,6 +104,7 @@ const { saving, fieldErrors, save } = useMasterResource(ENDPOINT, { name: 'Jam p
 function fill() {
   form.mulai = current.value?.mulai ?? ''
   form.selesai = current.value?.selesai ?? ''
+  aktif.value = current.value?.is_active == null ? true : !!current.value.is_active
 }
 
 async function load(silent = false) {
@@ -122,7 +131,12 @@ async function submit() {
   const ok = await save({
     mode: current.value ? 'edit' : 'create',
     row: current.value,
-    values: { mulai: form.mulai, selesai: form.selesai, keterangan: current.value?.keterangan ?? null },
+    values: {
+      mulai: form.mulai,
+      selesai: form.selesai,
+      keterangan: current.value?.keterangan ?? null,
+      is_active: aktif.value,
+    },
   })
   if (ok) await load(true)
 }

@@ -109,14 +109,13 @@
 
             <FormField
               id="catatan"
-              v-model="alasan"
+              v-model="teks"
               textarea
               :rows="5"
               :label="decision === 'reject' ? 'Alasan Penolakan' : 'Catatan untuk Siswa'"
-              :placeholder="decision === 'reject' ? 'Tulis alasan penolakan untuk siswa' : 'Catatan hanya dikirim saat pengajuan ditolak'"
-              :disabled="decision !== 'reject'"
+              :placeholder="decision === 'reject' ? 'Tulis alasan penolakan untuk siswa' : 'Tulis catatan untuk siswa (opsional)'"
               :error="errors.alasan"
-              :hint="decision === 'reject' ? 'Wajib diisi, maksimal 1000 karakter.' : ''"
+              :hint="decision === 'reject' ? 'Wajib diisi, maksimal 1000 karakter.' : 'Opsional, maksimal 1000 karakter.'"
             />
 
             <button
@@ -144,6 +143,12 @@
               :value="guruTerpilih"
               :hint="guruTerpilih ? '' : 'Belum ditentukan'"
             />
+            <div v-if="data.status === 'approved' && data.catatan" class="flex flex-col gap-1.5">
+              <p class="text-[10px] font-semibold uppercase leading-4 tracking-[0.06em] text-slate-500">Catatan untuk Siswa</p>
+              <p class="whitespace-pre-line rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">
+                {{ data.catatan }}
+              </p>
+            </div>
             <div v-if="data.status === 'rejected'" class="flex flex-col gap-1.5">
               <p class="text-[10px] font-semibold uppercase leading-4 tracking-[0.06em] text-slate-500">Alasan Penolakan</p>
               <p class="whitespace-pre-line rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">
@@ -190,6 +195,14 @@ const guruList = ref([])
 const decision = ref('approve')
 const guruId = ref('')
 const alasan = ref('')
+const catatan = ref('')
+const teks = computed({
+  get: () => (decision.value === 'reject' ? alasan.value : catatan.value),
+  set: (v) => {
+    if (decision.value === 'reject') alasan.value = v
+    else catatan.value = v
+  },
+})
 const saving = ref(false)
 const errors = reactive({ guru: '', alasan: '' })
 
@@ -247,6 +260,7 @@ watch(decision, () => {
   errors.alasan = ''
 })
 watch(alasan, () => (errors.alasan = ''))
+watch(catatan, () => (errors.alasan = ''))
 
 async function load() {
   try {
@@ -295,9 +309,10 @@ async function submit() {
     const url = `/api/pengajuan-pkl/${props.id}/${decision.value}`
     const body =
       decision.value === 'approve'
-        ? guruId.value
-          ? { guru_pembimbing_id: Number(guruId.value) }
-          : {}
+        ? {
+            ...(guruId.value ? { guru_pembimbing_id: Number(guruId.value) } : {}),
+            ...(catatan.value.trim() ? { catatan: catatan.value.trim() } : {}),
+          }
         : { alasan_penolakan: alasan.value.trim() }
 
     const res = await api.put(url, body)
@@ -309,7 +324,7 @@ async function submit() {
     if (statusCode === 422) {
       const e = err.response.data?.errors ?? {}
       errors.guru = e.guru_pembimbing_id?.[0] || ''
-      errors.alasan = e.alasan_penolakan?.[0] || ''
+      errors.alasan = e.alasan_penolakan?.[0] || e.catatan?.[0] || ''
       if (!errors.guru && !errors.alasan) toast.show(getErrorMessage(err), 'error')
     } else if (statusCode && statusCode < 500 && ![401, 403, 419, 429].includes(statusCode)) {
       toast.show(getErrorMessage(err), 'error')

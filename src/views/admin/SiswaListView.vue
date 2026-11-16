@@ -23,7 +23,7 @@
 
     <div class="flex flex-col gap-6">
       <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -72,27 +72,22 @@
             </span>
           </label>
 
-          <label
-            class="relative flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200"
-          >
-            <AppIcon name="building" class="h-4 w-4 shrink-0 text-slate-400" />
-            <select v-model="draftJurusan" class="min-w-0 flex-1 cursor-pointer appearance-none bg-transparent pr-5 outline-none">
-              <option value="">Semua Program Studi</option>
-              <option v-for="j in jurusanOptions" :key="j.id" :value="String(j.id)">{{ j.label }}</option>
-            </select>
-            <AppIcon name="chevron-down" class="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" />
-          </label>
+          <SelectDropdown
+            v-model="draftJurusan"
+            class="w-[220px]"
+            icon="building"
+            placeholder="Semua Program Studi"
+            :options="jurusanItems"
+          />
 
-          <label
-            class="relative flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200"
-          >
-            <AppIcon name="user-check" class="h-4 w-4 shrink-0 text-slate-400" />
-            <select v-model="draftGuru" class="min-w-0 flex-1 cursor-pointer appearance-none bg-transparent pr-5 outline-none">
-              <option value="">Semua Pembimbing</option>
-              <option v-for="g in guruOptions" :key="g.id" :value="String(g.id)">{{ g.label }}</option>
-            </select>
-            <AppIcon name="chevron-down" class="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" />
-          </label>
+          <SelectDropdown
+            v-model="draftGuru"
+            class="w-[220px]"
+            icon="user-check"
+            placeholder="Semua Pembimbing"
+            searchable
+            :options="guruItems"
+          />
 
           <button
             type="submit"
@@ -113,7 +108,7 @@
           </span>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data siswa…</p>
+        <SkeletonRows v-if="loading" :rows="8" :cols="4" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button
@@ -185,49 +180,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="filtered.length">Menampilkan {{ from }}–{{ to }} dari {{ filtered.length }} siswa</template>
-            <template v-else>Tidak ada siswa</template>
-          </span>
-
-          <div v-if="lastPage > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page - 1)"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="goTo(p)"
-              >
-                {{ p }}
-              </button>
-            </template>
-
-            <button
-              type="button"
-              :disabled="page >= lastPage"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page + 1)"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="siswa" />
       </section>
     </div>
 
@@ -243,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useToastStore } from '../../stores/toast'
 import { fetchAllPages, groupBySiswa, pklStatusOf, PKL_STATUS } from '../../utils/siswa'
@@ -251,7 +204,12 @@ import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DataPagination from '../../components/DataPagination.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import SelectDropdown from '../../components/SelectDropdown.vue'
+import { useSearchShortcut } from '../../composables/useSearchShortcut'
+import { useListState } from '../../composables/useListState'
 
 const toast = useToastStore()
 const PAGE_SIZE = 20
@@ -287,6 +245,19 @@ const applied = reactive({ search: '', jurusan: '', guru: '', tab: 'semua' })
 const toDelete = ref(null)
 const deleting = ref(false)
 const searchInput = ref(null)
+useSearchShortcut(searchInput)
+
+// Kembali dari detail/edit -> halaman, tab, pencarian, dan filter daftar dipulihkan
+useListState('siswa', ['/admin/master-data/siswa/'], {
+  snapshot: () => ({ page: page.value, applied: { ...applied } }),
+  restore: (s) => {
+    page.value = s.page
+    Object.assign(applied, s.applied)
+    draftSearch.value = s.applied.search
+    draftJurusan.value = s.applied.jurusan
+    draftGuru.value = s.applied.guru
+  },
+})
 
 const ready = computed(() => !loading.value && !error.value)
 
@@ -327,6 +298,16 @@ const guruOptions = computed(() => {
   return [...map].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label))
 })
 
+const jurusanItems = computed(() => [
+  { value: '', label: 'Semua Program Studi' },
+  ...jurusanOptions.value.map((j) => ({ value: String(j.id), label: j.label })),
+])
+
+const guruItems = computed(() => [
+  { value: '', label: 'Semua Pembimbing' },
+  ...guruOptions.value.map((g) => ({ value: String(g.id), label: g.label })),
+])
+
 const stats = computed(() => {
   const total = counts.value.semua
   const pct = total ? Math.round((counts.value.aktif / total) * 100) : 0
@@ -361,20 +342,6 @@ const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZ
 const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
 const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
-const pageItems = computed(() => {
-  const last = lastPage.value
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
-
 async function load() {
   loading.value = true
   error.value = ''
@@ -392,8 +359,9 @@ async function load() {
 
 async function loadPengajuan() {
   try {
-    const { data } = await api.get('/api/dashboard/admin')
-    pengajuanPending.value = data.pengajuan_pending ?? null
+    // Bukan dari /api/dashboard/admin: ringkasan itu di-cache BE 10 menit sehingga angkanya bisa basi
+    const { data } = await api.get('/api/pengajuan-pkl', { params: { status: 'pending' } })
+    pengajuanPending.value = data.meta?.total ?? null
   } catch {
     pengajuanPending.value = null
   }
@@ -409,11 +377,6 @@ function applyFilters() {
 function selectTab(key) {
   applied.tab = key
   page.value = 1
-}
-
-function goTo(p) {
-  if (p < 1 || p > lastPage.value || p === page.value) return
-  page.value = p
 }
 
 async function confirmDelete() {
@@ -436,17 +399,8 @@ async function confirmDelete() {
   }
 }
 
-function onKeydown(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault()
-    searchInput.value?.focus()
-  }
-}
-
 onMounted(() => {
-  window.addEventListener('keydown', onKeydown)
   load()
   loadPengajuan()
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>

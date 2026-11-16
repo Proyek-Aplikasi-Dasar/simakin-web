@@ -5,20 +5,33 @@
     </label>
 
     <div class="relative">
-      <select
+      <SelectDropdown
         v-if="options"
         :id="fieldId"
-        v-bind="a11y"
-        :name="name"
-        :value="modelValue"
+        :model-value="modelValue"
+        :options="options"
+        :placeholder="placeholder || 'Pilih'"
         :disabled="disabled"
-        :class="[base, 'h-10', borderClass]"
-        @change="$emit('update:modelValue', $event.target.value)"
+        :error="!!error"
+        :searchable="searchable"
+        @update:model-value="$emit('update:modelValue', $event)"
         @blur="$emit('blur')"
-      >
-        <option value="" disabled>{{ placeholder || 'Pilih' }}</option>
-        <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
+      />
+
+      <DatePicker
+        v-else-if="type === 'date' || type === 'month'"
+        :id="fieldId"
+        :model-value="String(modelValue ?? '')"
+        :mode="type"
+        :min="min != null ? String(min) : undefined"
+        :max="max != null ? String(max) : undefined"
+        :placeholder="placeholder"
+        :disabled="disabled || readonly"
+        :error="!!error"
+        :clearable="!required"
+        @update:model-value="$emit('update:modelValue', $event)"
+        @blur="$emit('blur')"
+      />
 
       <textarea
         v-else-if="textarea"
@@ -69,6 +82,8 @@
 
 <script setup>
 import { computed, useId } from 'vue'
+import SelectDropdown from './SelectDropdown.vue'
+import DatePicker from './DatePicker.vue'
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
@@ -81,6 +96,7 @@ const props = defineProps({
   error: { type: String, default: '' },
   suffix: { type: String, default: '' },
   options: { type: Array, default: null },
+  searchable: Boolean,
   textarea: Boolean,
   rows: { type: Number, default: 4 },
   disabled: Boolean,

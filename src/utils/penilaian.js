@@ -33,8 +33,13 @@ export async function fetchRingkasSiswa(siswaId) {
   const siswa = s.data.data
   const lokasi = pickLokasi(lok.data.data)
   const gid = lokasi?.gelombang?.id ?? siswa.gelombang?.id
-  const g = gid ? await api.get(`/api/gelombang/${gid}`).catch(() => null) : null
+  const pid = lokasi?.perusahaan?.id
+  const [g, p] = await Promise.all([
+    gid ? api.get(`/api/gelombang/${gid}`).catch(() => null) : null,
+    pid ? api.get(`/api/perusahaan/${pid}`).catch(() => null) : null,
+  ])
   const gelombang = g?.data?.data ?? null
+  const perusahaan = p?.data?.data ?? null
   const k = hitungKehadiran(abs)
 
   return {
@@ -49,7 +54,7 @@ export async function fetchRingkasSiswa(siswaId) {
       programStudi: siswa.jurusan?.nama ?? '',
       tempat: lokasi?.perusahaan?.nama ?? '',
       guru: lokasi?.guru?.nama ?? '',
-      pembimbingIndustri: '',
+      pembimbingIndustri: perusahaan?.pembimbing_industri ?? '',
       periode: gelombang ? `${formatDate(gelombang.praktik_mulai)} – ${formatDate(gelombang.praktik_selesai)}` : '',
     },
     rekap: {

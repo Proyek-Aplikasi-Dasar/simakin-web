@@ -33,14 +33,22 @@
 
         <div class="relative flex flex-col gap-2">
           <span
-            v-if="gelombangLabel"
+            v-if="loadingGelombang"
+            class="block h-6 w-64 max-w-full animate-pulse rounded-full bg-white/25"
+          ></span>
+          <span
+            v-else-if="gelombangLabel"
             class="inline-flex w-fit items-center gap-1.5 rounded-full bg-yellow-400 px-2.5 py-1 text-[11px] font-semibold leading-[14px] text-slate-900"
           >
             <AppIcon name="calendar" class="h-3.5 w-3.5" />
             {{ gelombangLabel }}
           </span>
 
-          <h2 class="text-xl font-semibold leading-[30px] tracking-[-0.02em]">{{ bannerTitle }}</h2>
+          <span
+            v-if="loadingRingkasan && pengajuanPending === null"
+            class="my-1 block h-5 w-72 max-w-full animate-pulse rounded bg-white/25"
+          ></span>
+          <h2 v-else class="text-xl font-semibold leading-[30px] tracking-[-0.02em]">{{ bannerTitle }}</h2>
           <p class="text-xs leading-[18px] text-blue-200">
             Verifikasi pengajuan siswa agar penempatan dan guru pembimbing bisa segera ditetapkan.
           </p>
@@ -52,7 +60,8 @@
                 :style="{ width: `${persenPenempatan ?? 0}%` }"
               ></div>
             </div>
-            <span class="text-[11px] font-medium leading-[14px]">
+            <span v-if="loadingRingkasan" class="block h-3 w-44 animate-pulse rounded bg-white/25"></span>
+            <span v-else class="text-[11px] font-medium leading-[14px]">
               {{ persenPenempatan === null ? 'Data penempatan belum tersedia' : `${persenPenempatan}% siswa sudah ditempatkan` }}
             </span>
           </div>
@@ -68,7 +77,7 @@
       </section>
 
       <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loadingRingkasan" />
       </section>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_352px]">
@@ -86,7 +95,24 @@
             <span class="w-10"></span>
           </div>
 
-          <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data…</p>
+          <ul v-if="loading" role="status" aria-busy="true" aria-label="Memuat data">
+            <li
+              v-for="i in 5"
+              :key="i"
+              class="flex items-center gap-4 border-t border-slate-100 px-6 py-3 first:border-t-0"
+            >
+              <div class="flex min-w-0 flex-1 items-center gap-2.5">
+                <span class="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200"></span>
+                <div class="flex min-w-0 flex-1 flex-col gap-2">
+                  <span class="h-3 w-32 max-w-full animate-pulse rounded bg-slate-200"></span>
+                  <span class="h-2.5 w-24 max-w-full animate-pulse rounded bg-slate-100"></span>
+                </div>
+              </div>
+              <span class="h-3 w-[170px] animate-pulse rounded bg-slate-200"></span>
+              <span class="h-6 w-[101px] animate-pulse rounded-full bg-slate-100"></span>
+              <span class="h-10 w-10 animate-pulse rounded-xl bg-slate-100"></span>
+            </li>
+          </ul>
           <ul v-else-if="pengajuanTerbaru.length">
             <li
               v-for="row in pengajuanTerbaru"
@@ -163,7 +189,21 @@
             to="/admin/rekap-presensi-jurnal"
           />
 
-          <p v-if="loading" class="flex-1 px-6 py-12 text-center text-sm text-slate-400">Memuat data…</p>
+          <div
+            v-if="loadingKehadiran"
+            class="flex flex-1 gap-8 px-6 py-3"
+            role="status"
+            aria-busy="true"
+            aria-label="Memuat data"
+          >
+            <ul v-for="c in 2" :key="c" class="flex min-w-0 flex-1 flex-col gap-4 self-start">
+              <li v-for="r in 4" :key="r" class="flex items-center gap-3">
+                <span class="h-3 w-11 shrink-0 animate-pulse rounded bg-slate-200"></span>
+                <span class="h-2 min-w-0 flex-1 animate-pulse rounded-full bg-slate-200"></span>
+                <span class="h-3 w-9 shrink-0 animate-pulse rounded bg-slate-200"></span>
+              </li>
+            </ul>
+          </div>
           <div v-else-if="kehadiranJurusan.length" class="flex flex-1 gap-8 px-6 py-3">
             <ul v-for="(kolom, i) in kolomKehadiran" :key="i" class="flex min-w-0 flex-1 flex-col gap-4 self-start">
               <li v-for="j in kolom" :key="j.id" class="flex items-center gap-3">
@@ -210,7 +250,17 @@
             to="/admin/notifikasi"
           />
 
-          <p v-if="loading" class="flex-1 px-6 py-12 text-center text-sm text-slate-400">Memuat data…</p>
+          <ul v-if="loading" class="flex flex-col gap-1 px-3" role="status" aria-busy="true" aria-label="Memuat data">
+            <li v-for="i in 4" :key="i" class="flex items-start gap-4 rounded-xl p-4">
+              <span class="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-slate-200"></span>
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <span class="h-2.5 w-16 animate-pulse rounded bg-slate-100"></span>
+                <span class="h-3 w-40 max-w-full animate-pulse rounded bg-slate-200"></span>
+                <span class="h-3 w-32 max-w-full animate-pulse rounded bg-slate-100"></span>
+              </div>
+              <span class="h-3 w-8 shrink-0 animate-pulse rounded bg-slate-100"></span>
+            </li>
+          </ul>
           <ul v-else-if="aktivitas.length" class="flex flex-col gap-1 px-3">
             <li v-for="a in aktivitas" :key="a.key" class="flex items-start gap-4 rounded-xl p-4">
               <span :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', tones[a.tone]]">
@@ -253,6 +303,9 @@ const waktu = computed(() => {
 })
 
 const loading = ref(true)
+const loadingKehadiran = ref(true)
+const loadingRingkasan = ref(true)
+const loadingGelombang = ref(true)
 const errors = reactive({ dashboard: false, pengajuan: false, kehadiran: false })
 
 const ringkasan = ref(null) 
@@ -260,6 +313,8 @@ const gelombang = ref(null)
 const perusahaanKuota = ref(null) 
 const pengajuan = ref([]) 
 const kehadiranJurusan = ref([])
+// Dihitung langsung dari daftar pengajuan: ringkasan dashboard di-cache BE 10 menit sehingga angkanya bisa basi
+const pengajuanPending = ref(null)
 
 const isoLokal = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -309,7 +364,7 @@ const gelombangLabel = computed(() => {
 })
 
 const bannerTitle = computed(() => {
-  const n = ringkasan.value?.pengajuan_pending
+  const n = pengajuanPending.value ?? ringkasan.value?.pengajuan_pending
   if (n === undefined || n === null) return 'Pengajuan PKL menunggu verifikasi'
   return n > 0 ? `${n} pengajuan PKL menunggu verifikasi` : 'Tidak ada pengajuan yang menunggu verifikasi'
 })
@@ -479,28 +534,59 @@ async function loadKehadiranJurusan() {
   })
 }
 
-onMounted(async () => {
-  const [dash, gel, kuota, peng, kehadiran] = await Promise.allSettled([
-    api.get('/api/dashboard/admin'),
-    api.get('/api/gelombang'),
-    api.get('/api/perusahaan', { params: { kuota_tersedia: 1 } }),
-    api.get('/api/pengajuan-pkl'),
-    loadKehadiranJurusan(),
-  ])
+// Tiap bagian dashboard ditampilkan begitu datanya datang, tidak menunggu yang paling lambat
+// (rekap kehadiran per jurusan adalah yang terberat).
+onMounted(() => {
+  api.get('/api/dashboard/admin')
+    .then((res) => {
+      ringkasan.value = res.data
+    })
+    .catch(() => {
+      errors.dashboard = true
+    })
+    .finally(() => {
+      loadingRingkasan.value = false
+    })
 
-  if (dash.status === 'fulfilled') ringkasan.value = dash.value.data
-  else errors.dashboard = true
+  api.get('/api/gelombang')
+    .then((res) => {
+      gelombang.value = pilihGelombang(res.data.data ?? [])
+    })
+    .catch(() => {})
+    .finally(() => {
+      loadingGelombang.value = false
+    })
 
-  if (gel.status === 'fulfilled') gelombang.value = pilihGelombang(gel.value.data.data ?? [])
+  api.get('/api/perusahaan', { params: { kuota_tersedia: 1 } })
+    .then((res) => {
+      perusahaanKuota.value = res.data.meta?.total ?? null
+    })
+    .catch(() => {})
 
-  if (kuota.status === 'fulfilled') perusahaanKuota.value = kuota.value.data.meta?.total ?? null
+  api.get('/api/pengajuan-pkl')
+    .then((res) => {
+      pengajuan.value = res.data.data ?? []
+    })
+    .catch(() => {
+      errors.pengajuan = true
+    })
+    .finally(() => {
+      loading.value = false
+    })
 
-  if (peng.status === 'fulfilled') pengajuan.value = peng.value.data.data ?? []
-  else errors.pengajuan = true
+  api.get('/api/pengajuan-pkl', { params: { status: 'pending' } })
+    .then((res) => {
+      pengajuanPending.value = res.data.meta?.total ?? null
+    })
+    .catch(() => {})
 
-  if (kehadiran.status === 'rejected') errors.kehadiran = true
-
-  loading.value = false
+  loadKehadiranJurusan()
+    .catch(() => {
+      errors.kehadiran = true
+    })
+    .finally(() => {
+      loadingKehadiran.value = false
+    })
 })
 
 </script>

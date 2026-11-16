@@ -1,77 +1,25 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm">
-    <div class="p-4 border-b">
-      <input v-model="search" type="text" placeholder="Cari..." class="border rounded-lg px-3 py-2 text-sm w-64" />
-    </div>
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 text-gray-600 text-left">
-        <tr>
-          <th v-for="col in columns" :key="col.key" @click="sortBy(col.key)" class="px-4 py-3 cursor-pointer select-none">
-            {{ col.label }}
-            <span v-if="sortKey === col.key">{{ sortAsc ? '↑' : '↓' }}</span>
-          </th>
-          <th v-if="$slots.actions" class="px-4 py-3">Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, i) in paginatedData" :key="row.id ?? i" class="border-t hover:bg-gray-50">
-          <td v-for="col in columns" :key="col.key" class="px-4 py-3">{{ row[col.key] }}</td>
-          <td v-if="$slots.actions" class="px-4 py-3">
-            <slot name="actions" :row="row" />
-          </td>
-        </tr>
-        <tr v-if="paginatedData.length === 0">
-          <td :colspan="columns.length + 1" class="px-4 py-6 text-center text-gray-400">Tidak ada data</td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="flex items-center justify-between p-4 border-t text-sm">
-      <span>Halaman {{ page }} dari {{ totalPages || 1 }}</span>
-      <div class="flex gap-2">
-        <button @click="page--" :disabled="page === 1" class="px-3 py-1 border rounded disabled:opacity-40">Prev</button>
-        <button @click="page++" :disabled="page === totalPages" class="px-3 py-1 border rounded disabled:opacity-40">Next</button>
-      </div>
-    </div>
+  <div class="overflow-hidden rounded-lg bg-white shadow-sm">
+    <AdminTable :columns="tableColumns" :rows="data" :per-page="perPage" searchable>
+      <!-- Teruskan semua slot (actions, cell-<key>, toolbar) ke AdminTable -->
+      <template v-for="(_, name) in $slots" #[name]="slotProps">
+        <slot :name="name" v-bind="slotProps ?? {}" />
+      </template>
+    </AdminTable>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { sortRows } from '../utils/sort'
+import { computed } from 'vue'
+import AdminTable from './AdminTable.vue'
 
+// Wrapper tipis di atas AdminTable supaya logika sorting/filter/pagination
+// hanya ada di satu tempat. Semua kolom bisa diurutkan kecuali sortable: false.
 const props = defineProps({
-  columns: { type: Array, required: true }, 
+  columns: { type: Array, required: true },
   data: { type: Array, required: true },
   perPage: { type: Number, default: 5 },
 })
 
-const search = ref('')
-const sortKey = ref('')
-const sortAsc = ref(true)
-const page = ref(1)
-
-function sortBy(key) {
-  if (sortKey.value === key) { sortAsc.value = !sortAsc.value }
-  else { sortKey.value = key; sortAsc.value = true }
-}
-
-const filtered = computed(() => {
-  if (!search.value) return props.data
-  const q = search.value.toLowerCase()
-  return props.data.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(q)))
-})
-
-const sorted = computed(() => {
-  if (!sortKey.value) return filtered.value
-  return sortRows(filtered.value, (row) => row[sortKey.value], sortAsc.value ? 'asc' : 'desc')
-})
-
-const totalPages = computed(() => Math.max(1, Math.ceil(sorted.value.length / props.perPage)))
-const paginatedData = computed(() => {
-  const start = (page.value - 1) * props.perPage
-  return sorted.value.slice(start, start + props.perPage)
-})
-
-// Kembali ke halaman 1 kalau pencarian atau urutan berubah
-watch([search, sortKey, sortAsc], () => (page.value = 1))
+const tableColumns = computed(() => props.columns.map((c) => ({ sortable: true, ...c })))
 </script>

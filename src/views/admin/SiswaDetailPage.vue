@@ -132,7 +132,8 @@
 
         <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <CardHeader title="Aktivitas Terbaru" description="Dari aplikasi siswa." />
-          <p v-if="!aktivitas.length" class="px-6 py-10 text-center text-sm text-slate-400">Belum ada aktivitas presensi.</p>
+          <p v-if="absLoading" class="px-6 py-10 text-center text-sm text-slate-400">Memuat aktivitas…</p>
+          <p v-else-if="!aktivitas.length" class="px-6 py-10 text-center text-sm text-slate-400">Belum ada aktivitas presensi.</p>
           <ul v-else class="flex flex-col gap-5 px-6 py-6">
             <li v-for="a in aktivitas" :key="a.id" class="flex items-start gap-3">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
@@ -206,6 +207,7 @@ const lokasi = ref(null)
 const perusahaan = ref(null)
 const gelombang = ref(null)
 const absensi = ref([])
+const absLoading = ref(true)
 
 const pklStatus = computed(() => pklStatusOf(lokasi.value))
 const jenisKelamin = computed(() => ({ L: 'Laki-laki', P: 'Perempuan' })[siswa.value.jenis_kelamin] ?? '')
@@ -233,7 +235,7 @@ const stats = computed(() => {
       icon: 'calendar-check',
       tone: 'green',
       value: k.persen != null ? `${k.persen}%` : null,
-      hint: `${k.hadir} dari ${k.efektif} hari`,
+      hint: absLoading.value ? 'memuat…' : `${k.hadir} dari ${k.efektif} hari`,
     },
     { label: 'Jurnal Terkirim', icon: 'file', tone: 'blue', value: null, hint: '' },
     { label: 'Nilai Rata-rata', icon: 'award', tone: 'blue', value: null, hint: '' },
@@ -250,15 +252,29 @@ const stats = computed(() => {
 async function load() {
   loading.value = true
   error.value = ''
+  absensi.value = []
+  absLoading.value = true
+
+  // Riwayat presensi (paling berat) dimuat paralel di belakang layar dan tidak menahan halaman.
+  // Request-nya tetap berjalan bersamaan dengan data siswa, jadi tidak menambah waktu total.
+  fetchAllPages('/api/absensi', { siswa_id: props.id })
+    .then((rows) => {
+      absensi.value = rows
+    })
+    .catch(() => {
+      absensi.value = []
+    })
+    .finally(() => {
+      absLoading.value = false
+    })
+
   try {
-    const [s, lok, abs] = await Promise.all([
+    const [s, lok] = await Promise.all([
       api.get(`/api/siswa/${props.id}`),
       api.get(`/api/siswa/${props.id}/lokasi-pkl`),
-      fetchAllPages('/api/absensi', { siswa_id: props.id }),
     ])
     siswa.value = s.data.data
     lokasiList.value = lok.data.data
-    absensi.value = abs
     lokasi.value = pickLokasi(lokasiList.value)
 
     const gid = lokasi.value?.gelombang?.id ?? siswa.value.gelombang?.id

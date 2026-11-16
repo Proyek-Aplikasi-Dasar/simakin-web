@@ -1,20 +1,11 @@
 import { ref } from 'vue'
 import api, { getErrorMessage } from '../services/api'
 import { useToastStore } from '../stores/toast'
+import { fetchAllPages } from '../utils/siswa'
 
-export async function fetchAll(url) {
-  let page = 1
-  let lastPage = 1
-  let all = []
-
-  do {
-    const { data } = await api.get(url, { params: { page } })
-    all = all.concat(data.data)
-    lastPage = data.meta?.last_page ?? 1
-    page++
-  } while (page <= lastPage)
-
-  return all
+// Dulu mengambil halaman satu per satu secara berurutan; sekarang paralel + cache.
+export function fetchAll(url) {
+  return fetchAllPages(url)
 }
 
 export function useMasterResource(

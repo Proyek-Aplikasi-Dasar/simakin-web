@@ -23,7 +23,7 @@
 
     <div class="flex flex-col gap-6">
       <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -81,7 +81,7 @@
           </span>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data guru…</p>
+        <SkeletonRows v-if="loading" :rows="8" :cols="4" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">
@@ -145,49 +145,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          <span>
-            <template v-if="filtered.length">Menampilkan {{ from }}–{{ to }} dari {{ filtered.length }} guru</template>
-            <template v-else>Tidak ada guru</template>
-          </span>
-
-          <div v-if="lastPage > 1" class="flex items-center gap-1.5">
-            <button
-              type="button"
-              :disabled="page <= 1"
-              aria-label="Halaman sebelumnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page - 1)"
-            >
-              <AppIcon name="arrow-left" class="h-4 w-4" />
-            </button>
-
-            <template v-for="(p, i) in pageItems" :key="`${p}-${i}`">
-              <span v-if="p === '…'" class="flex h-8 w-8 items-center justify-center text-xs font-semibold text-slate-500">…</span>
-              <button
-                v-else
-                type="button"
-                :class="[
-                  'flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
-                ]"
-                @click="goTo(p)"
-              >
-                {{ p }}
-              </button>
-            </template>
-
-            <button
-              type="button"
-              :disabled="page >= lastPage"
-              aria-label="Halaman berikutnya"
-              class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              @click="goTo(page + 1)"
-            >
-              <AppIcon name="arrow-right" class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="guru" />
       </section>
     </div>
 
@@ -203,7 +161,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useToastStore } from '../../stores/toast'
 import { fetchAllPages } from '../../utils/siswa'
@@ -211,9 +169,12 @@ import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import DataPagination from '../../components/DataPagination.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
+import { useSearchShortcut } from '../../composables/useSearchShortcut'
 
 const toast = useToastStore()
 const PAGE_SIZE = 10
@@ -247,6 +208,7 @@ const applied = reactive({ search: '', prodi: '', status: '' })
 const toDelete = ref(null)
 const deleting = ref(false)
 const searchInput = ref(null)
+useSearchShortcut(searchInput)
 
 useListState('guru', ['/admin/master-data/guru/'], {
   snapshot: () => ({ page: page.value, applied: { ...applied } }),
@@ -323,20 +285,6 @@ const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZ
 const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
 const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
-const pageItems = computed(() => {
-  const last = lastPage.value
-  const cur = page.value
-  const set = new Set([1, last, cur - 1, cur, cur + 1])
-  if (cur <= 2) set.add(3)
-  const sorted = [...set].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b)
-  const items = []
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) items.push('…')
-    items.push(n)
-  })
-  return items
-})
-
 async function load() {
   loading.value = true
   error.value = ''
@@ -364,11 +312,6 @@ function applyFilters() {
   page.value = 1
 }
 
-function goTo(p) {
-  if (p < 1 || p > lastPage.value || p === page.value) return
-  page.value = p
-}
-
 async function confirmDelete() {
   const target = toDelete.value
   if (!target || deleting.value) return
@@ -389,16 +332,5 @@ async function confirmDelete() {
   }
 }
 
-function onKeydown(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault()
-    searchInput.value?.focus()
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', onKeydown)
-  load()
-})
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+onMounted(load)
 </script>

@@ -1,6 +1,6 @@
 <template>
   <div class="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-    <aside class="sticky top-0 flex h-screen w-[272px] shrink-0 flex-col gap-4 border-r border-slate-200 bg-white py-5">
+    <aside class="sticky top-0 flex h-screen w-[272px] shrink-0 flex-col gap-4 border-r border-slate-200 bg-white py-5 print:hidden">
       <div class="flex shrink-0 items-center gap-3 px-5">
         <img src="../assets/logo-simakin.png" alt="" class="h-10 w-10" />
         <div>
@@ -65,7 +65,7 @@
                 :to="child.to"
                 :title="child.to ? undefined : 'Segera hadir'"
                 :class="[
-                  'flex h-9 items-center gap-3 rounded-xl pl-[22px] pr-2.5 text-sm',
+                  'flex min-h-9 items-center gap-2 rounded-xl py-1.5 pl-[18px] pr-2 text-sm leading-5',
                   child.to && route.path.startsWith(child.to)
                     ? 'bg-blue-50 font-semibold text-blue-600'
                     : child.to
@@ -128,7 +128,11 @@
 
           <span class="h-8 w-px bg-slate-200"></span>
 
-          <div class="flex items-center gap-2.5 pl-1">
+          <router-link
+            to="/admin/profil"
+            class="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-2 hover:bg-slate-50"
+            title="Lihat profil"
+          >
             <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-5 w-5" />
             </span>
@@ -137,7 +141,7 @@
               <p class="text-[11px] leading-[14px] text-slate-500">Administrator</p>
             </div>
             <AppIcon name="chevron-down" class="h-4 w-4 text-slate-500" />
-          </div>
+          </router-link>
         </div>
       </header>
 
@@ -223,7 +227,8 @@ function childActive(item) {
 }
 
 function isOpen(item) {
-  return openGroups.value[item.label] ?? childActive(item)
+  // Default terbuka; tetap bisa ditutup lewat toggle
+  return openGroups.value[item.label] ?? true
 }
 
 function toggle(item) {
