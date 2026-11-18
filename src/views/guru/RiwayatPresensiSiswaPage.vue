@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Presensi Siswa', to: backTo }, { label: 'Riwayat Presensi' }]"
       title="Riwayat Presensi Siswa"
@@ -36,15 +36,15 @@
           <span class="absolute -top-[90px] right-[160px] h-[180px] w-[180px] rounded-full bg-white/10"></span>
           <span class="absolute right-[40px] top-[10px] h-[120px] w-[120px] rounded-full bg-white/10"></span>
         </div>
-        <div class="relative flex items-end gap-6 px-6 pb-5 pt-7">
+        <div class="relative flex flex-wrap items-end gap-x-4 gap-y-3 px-4 pb-5 pt-7 sm:gap-x-6 sm:px-6">
           <span class="flex shrink-0 rounded-full bg-white p-1">
             <span class="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-9 w-9" />
             </span>
           </span>
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1 basis-40">
             <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ siswa?.user?.name ?? '…' }}</h2>
-            <p class="truncate text-xs leading-[18px] text-slate-500">{{ subline }}</p>
+            <p class="text-xs leading-[18px] text-slate-500 sm:truncate">{{ subline }}</p>
           </div>
           <span
             v-if="rekap.persen != null"
@@ -62,7 +62,7 @@
           :description="`Periode ${formatDate(periode.from, true)} – ${formatDate(periode.to, true)}${loading ? '' : ` · ${rekap.efektif} hari efektif`}.`"
         />
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
           <button
             v-for="t in tabs"
             :key="t.key"
@@ -87,73 +87,64 @@
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center justify-between gap-3 px-6 py-4" @submit.prevent="applyRange">
-          <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+        <form class="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6" @submit.prevent="applyRange">
+          <label class="flex h-10 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200 sm:w-[200px]">
             <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
             <DatePicker v-model="range.bulan" mode="month" :max="bulanIni" bare class="min-w-0 flex-1" />
           </label>
           <button
             type="submit"
-            class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100"
+            class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100 sm:w-auto"
           >
             <AppIcon name="filter" class="h-5 w-5" />
             Terapkan
           </button>
         </form>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
-          <span
-            v-for="col in columns"
-            :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
-          >
-            {{ col.label }}
-          </span>
-        </div>
-
-        <SkeletonRows v-if="loading" :rows="7" :cols="4" :avatar="false" />
-        <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <div v-if="error" class="flex flex-col items-center gap-3 border-t border-slate-100 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="loadRows">
             Coba lagi
           </button>
         </div>
-        <p v-else-if="!pageRows.length" class="px-6 py-12 text-center text-sm text-slate-400">
-          Tidak ada data presensi pada periode ini.
-        </p>
 
-        <div v-else class="divide-y divide-slate-100">
-          <div v-for="r in pageRows" :key="r.id" class="flex items-center gap-4 px-6 py-3">
-            <span class="w-[110px] text-xs leading-[18px] text-slate-600">{{ formatDate(r.tanggal, true) }}</span>
-            <span class="w-[80px] text-xs leading-[18px] text-slate-600">{{ hariName(r.tanggal) }}</span>
-            <span class="w-[96px] text-xs leading-[18px] text-slate-600">{{ jamOnly(r.jam_masuk) }}</span>
-            <span class="w-[96px] text-xs leading-[18px] text-slate-600">{{ jamShift(r) }}</span>
-            <div class="w-[90px]">
-              <span
-                :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', ABSEN_STATUS[r.status]?.box]"
-              >
-                <span :class="['h-1.5 w-1.5 rounded-full', ABSEN_STATUS[r.status]?.dot]" />
-                {{ ABSEN_STATUS[r.status]?.label ?? r.status }}
-              </span>
-            </div>
-            <span class="flex min-w-0 flex-1 items-center gap-2 text-xs leading-[18px] text-slate-600">
-              <AppIcon :name="r.status === 'hadir' && !r.keterangan ? 'building' : 'file'" class="h-4 w-4 shrink-0 text-slate-400" />
-              <span class="truncate">{{ r.keterangan || (r.status === 'hadir' ? perusahaanNama : '—') }}</span>
+        <AdminTable
+          v-else
+          v-model:page="page"
+          :columns="columns"
+          :rows="filtered"
+          :per-page="PAGE_SIZE"
+          :loading="loading"
+          entity="hari"
+          actions-width="w-[72px]"
+        >
+          <template #cell-tanggal="{ row }">{{ formatDate(row.tanggal, true) }}</template>
+          <template #cell-hari="{ row }">{{ hariName(row.tanggal) }}</template>
+          <template #cell-jam_masuk="{ row }">{{ jamOnly(row.jam_masuk) }}</template>
+          <template #cell-jam_shift="{ row }">{{ jamShift(row) }}</template>
+          <template #cell-status="{ row }">
+            <span :class="['inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', ABSEN_STATUS[row.status]?.box]">
+              <span :class="['h-1.5 w-1.5 rounded-full', ABSEN_STATUS[row.status]?.dot]" />
+              {{ ABSEN_STATUS[row.status]?.label ?? row.status }}
             </span>
-            <div class="flex w-10 justify-end">
-              <router-link
-                :to="`${backTo}/${r.id}`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Lihat detail presensi"
-                title="Lihat detail"
-              >
-                <AppIcon name="eye" class="h-5 w-5" />
-              </router-link>
+          </template>
+          <template #cell-keterangan="{ row }">
+            <div class="flex min-w-0 items-center gap-2">
+              <AppIcon :name="row.status === 'hadir' && !row.keterangan ? 'building' : 'file'" class="h-4 w-4 shrink-0 text-slate-400" />
+              <span class="sm:truncate">{{ row.keterangan || (row.status === 'hadir' ? perusahaanNama : '—') }}</span>
             </div>
-          </div>
-        </div>
-
-        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="hari" empty-label="data" />
+          </template>
+          <template #actions="{ row }">
+            <router-link
+              :to="`${backTo}/${row.id}`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Lihat detail presensi"
+              title="Lihat detail"
+            >
+              <AppIcon name="eye" class="h-5 w-5" />
+            </router-link>
+          </template>
+        </AdminTable>
       </section>
     </div>
   </div>
@@ -178,8 +169,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
-import DataPagination from '../../components/DataPagination.vue'
-import SkeletonRows from '../../components/SkeletonRows.vue'
+import AdminTable from '../../components/AdminTable.vue'
 import { useListState } from '../../composables/useListState'
 
 const props = defineProps({
@@ -199,17 +189,17 @@ const tabs = [
   { key: 'libur', label: 'Libur' },
 ]
 
+// lebar kolom udah include padding 16px
 const columns = [
-  { label: 'Tanggal', width: 'w-[110px]', align: '' },
-  { label: 'Hari', width: 'w-[80px]', align: '' },
-  { label: 'Waktu Kirim', width: 'w-[96px]', align: '' },
-  { label: 'Jam Shift', width: 'w-[96px]', align: '' },
-  { label: 'Status', width: 'w-[90px]', align: '' },
-  { label: 'Keterangan', width: 'flex-1', align: '' },
-  { label: '', width: 'w-10', align: '' },
+  { key: 'tanggal', label: 'Tanggal', width: 'w-[126px]' },
+  { key: 'hari', label: 'Hari', width: 'w-[96px]' },
+  { key: 'jam_masuk', label: 'Waktu Kirim', width: 'w-[112px]' },
+  { key: 'jam_shift', label: 'Jam Shift', width: 'w-[112px]' },
+  { key: 'status', label: 'Status', width: 'w-[130px]' },
+  { key: 'keterangan', label: 'Keterangan' },
 ]
 
-// Endpoint /api/absensi/siswa/{siswa}/periode bekerja per bulan (bulan + tahun), bukan rentang tanggal
+// endpoint periode per bulan (bulan + tahun), bukan rentang tanggal
 const bulanIni = toIso(new Date()).slice(0, 7)
 const range = reactive({ bulan: bulanIni })
 const applied = reactive({ bulan: bulanIni })
@@ -229,7 +219,7 @@ const forbidden = ref('')
 const activeTab = ref('semua')
 const page = ref(1)
 
-// Kembali dari detail presensi -> halaman, tab, dan bulan dipulihkan
+// balik dari detail, state dipulihin
 let restored = false
 useListState(`guru-riwayat-presensi-${props.id}`, ['/guru/presensi-siswa/'], {
   snapshot: () => ({ page: page.value, tab: activeTab.value, bulan: applied.bulan }),
@@ -249,8 +239,7 @@ const subline = computed(() =>
     : ''
 )
 
-// Hitungan hadir/izin/sakit/libur datang dari BE; hari efektif dihitung dari hari kerja pada periode
-// (dipotong masa PKL dan hari ini), sehingga hari tanpa presensi dihitung tidak hadir.
+// hadir/izin/sakit/libur dari BE, hari efektif dihitung di FE (hari kerja dipotong masa PKL & hari ini)
 const rekap = computed(() => {
   const c = rekapBe.value
   const total = c.hadir + c.izin + c.sakit + c.libur
@@ -259,22 +248,18 @@ const rekap = computed(() => {
   return { ...c, total, efektif, persen: efektif > 0 ? Math.round((c.hadir / efektif) * 100) : null }
 })
 const filtered = computed(() => (activeTab.value === 'semua' ? rows.value : rows.value.filter((r) => r.status === activeTab.value)))
-const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
-const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
 function selectTab(key) {
   activeTab.value = key
   page.value = 1
 }
 
-// Jam shift hanya terisi untuk hari kerja; hari libur tidak punya shift
+// libur ga punya shift
 function jamShift(r) {
   return r.jam_shift_mulai && r.jam_shift_selesai ? `${jamOnly(r.jam_shift_mulai)}–${jamOnly(r.jam_shift_selesai)}` : '—'
 }
 
-// Username guru = NIP, dicocokkan ke guru.nip di lokasi PKL
+// username guru = NIP
 async function loadSiswa() {
   try {
     const [s, lok] = await Promise.all([
@@ -303,7 +288,7 @@ async function loadRows() {
     const res = await api.get(`/api/absensi/siswa/${props.id}/periode`, { params: { bulan, tahun } })
     rows.value = [...(res.data.data ?? [])].sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)))
     rekapBe.value = { hadir: 0, izin: 0, sakit: 0, libur: 0, ...(res.data.rekap ?? {}) }
-    // Pertama kali memuat setelah state dipulihkan: pertahankan halaman yang tersimpan
+    // load pertama abis restore, jangan reset page
     if (restored) restored = false
     else page.value = 1
   } catch (err) {
@@ -345,7 +330,7 @@ function exportCsv() {
 }
 
 onMounted(async () => {
-  // Data presensi baru dimuat setelah dipastikan siswa ini bimbingan guru yang login
+  // load presensi cuma kalo siswa ini bimbingan guru yg login
   if (await loadSiswa()) loadRows()
   else loading.value = false
 })

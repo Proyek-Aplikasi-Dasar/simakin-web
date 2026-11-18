@@ -118,7 +118,7 @@
               </span>
             </div>
 
-            <div class="flex w-[90px] justify-end gap-2">
+            <div class="flex w-[90px] justify-end gap-2.5">
               <router-link
                 :to="detailLink(row)"
                 class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"

@@ -18,9 +18,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-400">
-      Memuat data...
-    </p>
+    <PageSkeleton v-if="loading" />
     <p v-else-if="loadError" class="rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
 
     <div v-else class="flex flex-col gap-6">
@@ -59,12 +57,18 @@
           <div class="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2">
             <InfoItem icon="building" label="Nama Perusahaan" :value="data.perusahaan?.nama" />
             <InfoItem icon="pin" label="Alamat" :value="perusahaan.alamat" />
-            <InfoItem icon="user" label="Pimpinan" :value="perusahaan.pimpinan" />
+            <InfoItem icon="user" label="Pembimbing Industri" :value="perusahaan.pembimbing_industri" />
             <InfoItem icon="smartphone" label="Kontak" :value="perusahaan.telp" />
             <InfoItem icon="calendar" label="Periode" :value="periode" />
             <InfoItem icon="briefcase" label="Kuota Tersisa" :value="kuotaTersisa" />
             <InfoItem icon="calendar-check" label="Tanggal Pengajuan" :value="formatWaktu(data.created_at)" />
-            <InfoItem icon="clipboard-list" label="Gelombang" :value="gelombangLabel" />
+            <InfoItem
+              icon="clipboard-list"
+              label="Dipilih Dari"
+              value=""
+              hint="Belum tersedia di BE"
+              disabled
+            />
           </div>
         </FormCard>
 
@@ -174,6 +178,7 @@ import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -242,7 +247,7 @@ const kuotaTersisa = computed(() => {
 const guruOptions = computed(() =>
   guruList.value.map((g) => ({
     value: g.id,
-    label: g.nip ? `${g.user?.name ?? '—'} (${g.nip})` : (g.user?.name ?? '—'),
+    label: g.user?.name ?? '—',
   }))
 )
 

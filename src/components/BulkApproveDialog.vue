@@ -139,7 +139,6 @@ const searchEl = ref(null)
 const titleId = useId()
 const descId = useId()
 
-// Pilihan eksplisit "tanpa pembimbing": tidak ada yang terpilih otomatis, admin harus memilih salah satu
 const NONE = { id: null, none: true }
 const guru = ref(null)
 const q = ref('')

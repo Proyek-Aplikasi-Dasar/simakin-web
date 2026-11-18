@@ -77,8 +77,9 @@
           />
           <button
             type="button"
-            class="flex h-[42px] shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-            @click="buatToken"
+            class="flex h-[42px] shrink-0 cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 opacity-60"
+            disabled
+            title="Menunggu endpoint BE"
           >
             <svg class="h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
@@ -123,8 +124,7 @@ const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', '
 const toast = useToastStore()
 const saving = ref(false)
 
-// Nilai awal. TODO: ganti dengan data dari API pengaturan penilaian bulanan
-const awal = () => ({ bulan: Array(12).fill(false), dari: '1', sampai: '10', token: '' })
+const awal = () => ({ bulan: Array(12).fill(false), dari: '', sampai: '', token: '' })
 let tersimpan = awal()
 
 const bulanAktif = ref([...tersimpan.bulan])
@@ -170,7 +170,6 @@ async function submit() {
       tanggal_sampai: Number(form.sampai),
       token: form.token || null,
     }
-    // TODO: sambungkan ke API pengaturan penilaian bulanan bila endpoint BE sudah ada
     void payload
     toast.warning('Penyimpanan belum tersambung: endpoint pengaturan penilaian belum tersedia di BE.')
   } finally {
@@ -178,5 +177,4 @@ async function submit() {
   }
 }
 
-// TODO: muat pengaturan tersimpan dari API, isi bulanAktif/form, lalu set `tersimpan`
 </script>

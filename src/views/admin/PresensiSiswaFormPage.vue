@@ -14,7 +14,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loadingData" class="py-16 text-center text-sm text-slate-400">Memuat data…</p>
+    <PageSkeleton v-if="loadingData" />
     <div v-else-if="loadError" class="py-16 text-center text-sm text-red-600">{{ loadError }}</div>
 
     <div v-else class="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
@@ -175,6 +175,7 @@ import InfoItem from '../../components/InfoItem.vue'
 import InfoAlert from '../../components/InfoAlert.vue'
 import RadioCardGroup from '../../components/RadioCardGroup.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 import DatePicker from '../../components/DatePicker.vue'
 
 const props = defineProps({ id: { type: [String, Number], default: null } })
@@ -183,7 +184,6 @@ const router = useRouter()
 const toast = useToastStore()
 const auth = useAuthStore()
 
-// Form ini dipakai admin dan guru; semua tautan mengikuti prefix halaman yang sedang dibuka
 const isGuruPage = route.path.startsWith('/guru')
 const listPath = isGuruPage ? '/guru/presensi-siswa' : '/admin/presensi-siswa'
 
@@ -215,10 +215,8 @@ const form = reactive({
   keterangan: '',
 })
 
-// Keterangan wajib untuk izin/sakit/libur (sama dengan validasi BE)
 const perluKeterangan = computed(() => ['izin', 'sakit', 'libur'].includes(form.status))
 
-// Berkas pendukung hanya dikirim saat tambah manual
 const berkas = ref(null)
 function onBerkas(e) {
   berkas.value = e.target.files?.[0] ?? null
@@ -226,7 +224,6 @@ function onBerkas(e) {
 
 const siswaLabel = computed(() => (lama.value?.siswa ? `${lama.value.siswa.nama} · ${lama.value.siswa.nis}` : ''))
 
-// Pencarian siswa (nama / NIS) dari daftar siswa yang punya penempatan aktif
 const q = ref('')
 const open = ref(false)
 const selected = computed(() => siswaOptions.value.find((s) => String(s.id) === form.siswa_id) ?? null)
@@ -261,7 +258,6 @@ async function init() {
       form.keterangan = lama.value.keterangan ?? ''
     } else {
       let lokasi = await fetchAllPages('/api/lokasi-pkl', { status: 'active' })
-      // Guru hanya boleh menambah presensi siswa bimbingannya (username guru = NIP)
       if (isGuruPage) lokasi = lokasi.filter((l) => l.guru?.nip === auth.user?.username)
       siswaOptions.value = [...groupBySiswa(lokasi).values()]
         .filter(Boolean)
@@ -275,7 +271,6 @@ async function init() {
 }
 
 async function submit() {
-  // Dengan id: koreksi presensi (POST /api/absensi/{id}/koreksi). Tanpa id: tambah presensi manual (POST /api/absensi/manual).
   Object.keys(errors).forEach((k) => delete errors[k])
   if (!isEdit.value && !form.siswa_id) {
     errors.siswa_id = 'Siswa wajib dipilih.'

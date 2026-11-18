@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'PKL' }, { label: 'Pengajuan PKL' }]"
       title="Pengajuan PKL"
@@ -25,14 +25,14 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <CardHeader title="Daftar Pengajuan" description="Status pengajuan tempat PKL siswa." />
 
-        <div class="flex gap-8 overflow-x-auto border-b border-slate-200 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:gap-8 sm:px-6">
           <button
             v-for="tab in tabs"
             :key="tab.key"
@@ -53,12 +53,13 @@
             >
               {{ counts[tab.key] }}
             </span>
+            <span v-else-if="loading" class="h-5 w-7 animate-pulse rounded-full bg-slate-200" aria-hidden="true"></span>
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center gap-3 px-6 py-4" @submit.prevent="applyFilters">
+        <form class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6" @submit.prevent="applyFilters">
           <label
-            class="flex h-10 min-w-[240px] flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200"
+            class="flex h-10 w-full min-w-0 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200 sm:min-w-[240px] sm:flex-1"
           >
             <AppIcon name="search" class="h-5 w-5 shrink-0 text-slate-400" />
             <input
@@ -68,21 +69,21 @@
               placeholder="Cari nama / NIS siswa…"
               class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
             />
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">
+            <span class="hidden rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500 md:block">
               Ctrl K
             </span>
           </label>
 
           <SelectDropdown
             v-model="draftPerusahaan"
-            class="w-[220px]"
+            class="w-full sm:w-[220px]"
             icon="building"
             placeholder="Semua Perusahaan"
             :options="perusahaanItems"
           />
 
           <label
-            class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200"
+            class="flex h-10 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200 sm:w-[200px]"
           >
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
             <DatePicker v-model="draftBulan" mode="month" bare class="min-w-0 flex-1" />
@@ -90,16 +91,19 @@
 
           <button
             type="submit"
-            class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100"
+            class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100 sm:w-auto"
           >
             <AppIcon name="filter" class="h-5 w-5" />
             Terapkan
           </button>
         </form>
 
+        <!-- HP (< sm): tiap baris jadi kartu. sm ke atas: tabel digeser horizontal kalau layar sempit -->
+        <div class="sm:overflow-x-auto">
+        <div class="sm:min-w-[760px]">
         <div
           v-if="selected.length"
-          class="flex items-center gap-4 border-t border-slate-100 bg-blue-50 px-6 py-2.5"
+          class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 bg-blue-50 px-4 py-2.5 sm:px-6"
         >
           <input
             type="checkbox"
@@ -127,23 +131,98 @@
           </button>
         </div>
 
-        <div v-else class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
+        <div v-else class="relative flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-4 py-2.5 sm:px-6">
           <input
             type="checkbox"
             :checked="allPageSelected"
-            :disabled="!selectableOnPage.length"
-            class="h-5 w-5 shrink-0 cursor-pointer rounded-md accent-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+            :class="{ 'hint-shake': shake }"
+            class="h-5 w-5 shrink-0 cursor-pointer rounded-md accent-blue-600"
             aria-label="Pilih semua pengajuan menunggu di halaman ini"
+            title="Hanya memilih pengajuan berstatus Menunggu"
             @change="toggleAllOnPage"
           />
-          <span class="flex-[2] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Siswa</span>
-          <span class="flex-[1.6] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Perusahaan Tujuan</span>
-          <span class="flex-1 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Diajukan</span>
-          <span class="flex-1 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Status</span>
-          <span class="w-[120px] text-right text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Aksi</span>
+
+          <div v-if="showHint" class="fixed inset-0 z-10" @click="hideHint"></div>
+          <Transition name="hint">
+            <div
+              v-if="showHint"
+              role="status"
+              class="absolute left-4 top-full z-20 mt-2 w-[320px] max-w-[calc(100vw-4rem)] rounded-xl border border-yellow-200 bg-white p-3.5 shadow-lg"
+            >
+              <span class="absolute -top-1.5 left-[18px] h-3 w-3 rotate-45 border-l border-t border-yellow-200 bg-white"></span>
+              <div class="flex items-start gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-yellow-50 text-yellow-700">
+                  <AppIcon name="hourglass" class="h-[18px] w-[18px]" />
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold leading-[18px] text-slate-900">Belum ada yang bisa dipilih</p>
+                  <p class="mt-0.5 text-[11px] leading-4 text-slate-500">
+                    Pilih semua hanya untuk pengajuan berstatus <b class="font-semibold text-yellow-700">Menunggu</b>, dan
+                    halaman ini tidak punya satu pun.
+                  </p>
+                  <div class="mt-2.5 flex items-center gap-2">
+                    <button
+                      v-if="activeTab !== 'pending' && counts.pending"
+                      type="button"
+                      class="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold leading-4 text-white hover:bg-blue-700"
+                      @click="showPending"
+                    >
+                      Lihat {{ counts.pending }} yang menunggu
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-4 text-slate-500 hover:bg-slate-100"
+                      @click="hideHint"
+                    >
+                      Mengerti
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Transition>
+          <span class="text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 sm:hidden">Pilih semua</span>
+          <span class="flex-[2] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Siswa</span>
+          <span class="flex-[1.6] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Perusahaan Tujuan</span>
+          <span class="flex-1 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Diajukan</span>
+          <span class="flex-1 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Status</span>
+          <span class="w-[128px] text-right text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Aksi</span>
         </div>
 
-        <SkeletonRows v-if="loading" :rows="6" :cols="3" />
+        <ul v-if="loading" role="status" aria-busy="true" aria-label="Memuat data pengajuan">
+          <li
+            v-for="i in 6"
+            :key="i"
+            class="flex items-center gap-4 border-t border-slate-100 px-4 py-3 first:border-t-0 sm:px-6 max-sm:[&>*:nth-child(n+3)]:hidden"
+          >
+            <span class="h-5 w-5 shrink-0 animate-pulse rounded-md bg-slate-200"></span>
+
+            <div class="flex min-w-0 flex-[2] items-center gap-3">
+              <span class="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200"></span>
+              <div class="flex flex-col gap-1.5">
+                <span :class="['h-3 animate-pulse rounded bg-slate-200', i % 2 ? 'w-32' : 'w-40']"></span>
+                <span class="h-2.5 w-24 animate-pulse rounded bg-slate-100"></span>
+              </div>
+            </div>
+
+            <div class="flex min-w-0 flex-[1.6] flex-col gap-1.5">
+              <span class="h-3 w-36 max-w-full animate-pulse rounded bg-slate-200"></span>
+              <span class="h-2.5 w-44 max-w-full animate-pulse rounded bg-slate-100"></span>
+            </div>
+
+            <div class="flex-1">
+              <span class="block h-3 w-20 animate-pulse rounded bg-slate-200"></span>
+            </div>
+
+            <div class="flex-1">
+              <span class="block h-6 w-24 animate-pulse rounded-full bg-slate-100"></span>
+            </div>
+
+            <div class="flex w-[128px] justify-end">
+              <span class="h-8 w-24 animate-pulse rounded-xl bg-slate-100"></span>
+            </div>
+          </li>
+        </ul>
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button
@@ -163,7 +242,8 @@
             v-for="row in pagedRows"
             :key="row.id"
             :class="[
-              'flex items-center gap-4 border-t border-slate-100 px-6 py-4 first:border-t-0',
+              'flex items-center gap-4 border-t border-slate-100 px-4 py-3 first:border-t-0 sm:px-6',
+              'max-sm:grid max-sm:grid-cols-[auto_1fr] max-sm:gap-x-3 max-sm:gap-y-0 max-sm:border-t-8 max-sm:py-3 max-sm:first:border-t-0',
               isSelected(row.id) && 'bg-blue-50/60',
             ]"
           >
@@ -175,29 +255,31 @@
               :aria-label="`Pilih pengajuan ${row.siswa.nama}`"
               @change="toggleRow(row.id)"
             />
-            <span v-else class="h-5 w-5 shrink-0"></span>
+            <span v-else class="h-5 w-5 shrink-0 max-sm:hidden"></span>
 
-            <div class="flex min-w-0 flex-[2] items-center gap-3">
-              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <div
+              :class="['flex min-w-0 flex-[2] items-center gap-3 max-sm:pb-3', row.status !== 'pending' && 'max-sm:col-span-2']"
+            >
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
               </span>
               <div class="min-w-0">
-                <p class="truncate text-sm font-semibold leading-5 text-slate-900">{{ row.siswa.nama }}</p>
-                <p class="truncate text-xs leading-4 text-slate-500">{{ row.siswa.sub }}</p>
+                <p class="truncate text-xs font-semibold leading-[18px] text-slate-900">{{ row.siswa.nama }}</p>
+                <p class="truncate text-[11px] leading-[14px] text-slate-500">{{ row.siswa.sub }}</p>
               </div>
             </div>
 
-            <div class="min-w-0 flex-[1.6]">
-              <p class="truncate text-sm font-semibold leading-5 text-slate-900">{{ row.perusahaan.nama }}</p>
-              <p class="truncate text-xs leading-4 text-slate-500">{{ row.perusahaan.alamat }}</p>
+            <div class="min-w-0 flex-[1.6]" data-label="Perusahaan Tujuan" :class="mobileCell">
+              <p class="truncate text-xs font-medium leading-[18px] text-slate-900">{{ row.perusahaan.nama }}</p>
+              <p class="truncate text-[11px] leading-[14px] text-slate-500">{{ row.perusahaan.alamat }}</p>
             </div>
 
-            <p class="flex-1 text-sm text-slate-600">{{ row.diajukan }}</p>
+            <p class="flex-1 text-xs leading-[18px] text-slate-600" data-label="Diajukan" :class="mobileCell">{{ row.diajukan }}</p>
 
-            <div class="flex-1">
+            <div class="flex-1 max-sm:items-start" data-label="Status" :class="mobileCell">
               <span
                 :class="[
-                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-[14px]',
+                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
                   PENGAJUAN_STATUS[row.status].box,
                 ]"
               >
@@ -206,11 +288,11 @@
               </span>
             </div>
 
-            <div class="flex w-[120px] justify-end">
+            <div class="flex w-[128px] justify-end max-sm:col-span-2 max-sm:w-full max-sm:border-t max-sm:border-slate-200 max-sm:pb-2 max-sm:pt-3.5">
               <router-link
                 v-if="row.status === 'pending'"
                 :to="`/admin/pengajuan-pkl/${row.id}`"
-                class="flex h-9 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-700"
+                class="flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold leading-4 text-white hover:bg-blue-700"
               >
                 <AppIcon name="circle-check" class="h-4 w-4" />
                 Verifikasi
@@ -218,7 +300,7 @@
               <router-link
                 v-else
                 :to="`/admin/pengajuan-pkl/${row.id}`"
-                class="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold leading-4 text-slate-900 hover:bg-slate-50"
               >
                 <AppIcon name="eye" class="h-4 w-4" />
                 Detail
@@ -226,11 +308,13 @@
             </div>
           </li>
         </ul>
+        </div>
+        </div>
 
-        <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
+        <div v-if="ready" class="flex flex-col items-start justify-between gap-3 border-t border-slate-100 px-4 py-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
           <span>{{ summary }}</span>
 
-          <div v-if="totalPages > 1" class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5">
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 disabled:opacity-40"
@@ -248,7 +332,7 @@
                 type="button"
                 :class="[
                   'h-8 min-w-8 rounded-lg px-2 text-xs font-semibold',
-                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50',
+                  p === page ? 'bg-blue-600 text-white' : 'border border-slate-100 bg-white text-slate-600 hover:bg-slate-50',
                 ]"
                 @click="page = p"
               >
@@ -266,6 +350,9 @@
               <AppIcon name="arrow-right" class="h-4 w-4" />
             </button>
           </div>
+        </div>
+        <div v-else-if="loading" class="flex h-[57px] items-center border-t border-slate-100 px-6">
+          <span class="h-3 w-44 animate-pulse rounded bg-slate-100"></span>
         </div>
       </section>
     </div>
@@ -292,12 +379,15 @@ import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
-import SkeletonRows from '../../components/SkeletonRows.vue'
 import BulkApproveDialog from '../../components/BulkApproveDialog.vue'
 import { useListState } from '../../composables/useListState'
 
 const toast = useToastStore()
 const PAGE_SIZE = 10
+
+// Sel berlabel di kartu HP (< sm): label kolom (data-label) di atas, nilai di bawah
+const mobileCell =
+  'max-sm:col-span-2 max-sm:flex max-sm:flex-col max-sm:gap-1.5 max-sm:border-t max-sm:border-slate-200 max-sm:py-3 max-sm:before:text-[10px] max-sm:before:font-semibold max-sm:before:uppercase max-sm:before:tracking-[0.6px] max-sm:before:text-slate-500 max-sm:before:content-[attr(data-label)]'
 
 const tabs = [
   { key: 'semua', label: 'Semua' },
@@ -401,7 +491,7 @@ const stats = computed(() => [
     label: 'Perusahaan Dibuka',
     icon: 'building',
     tone: 'blue',
-    value: perusahaanLoaded.value && ready.value ? perusahaanList.value.length : null,
+    value: perusahaanLoaded.value && ready.value ? perusahaanList.value.filter((p) => p.is_active !== false).length : null,
     hint: 'bisa dipilih siswa',
   },
 ])
@@ -489,8 +579,13 @@ function toggleRow(id) {
   selected.value = isSelected(id) ? selected.value.filter((x) => x !== id) : [...selected.value, id]
 }
 
-function toggleAllOnPage() {
+function toggleAllOnPage(e) {
   const ids = selectableOnPage.value.map((r) => r.id)
+  if (!ids.length) {
+    if (e?.target) e.target.checked = false
+    showEmptyHint()
+    return
+  }
   selected.value = allPageSelected.value
     ? selected.value.filter((id) => !ids.includes(id))
     : [...new Set([...selected.value, ...ids])]
@@ -498,6 +593,29 @@ function toggleAllOnPage() {
 
 function clearSelection() {
   selected.value = []
+  hideHint()
+}
+
+const showHint = ref(false)
+const shake = ref(false)
+let hintTimer = null
+
+function hideHint() {
+  showHint.value = false
+  clearTimeout(hintTimer)
+}
+
+function showEmptyHint() {
+  clearTimeout(hintTimer)
+  showHint.value = true
+  shake.value = true
+  setTimeout(() => (shake.value = false), 450)
+  hintTimer = setTimeout(hideHint, 6000)
+}
+
+function showPending() {
+  hideHint()
+  selectTab('pending')
 }
 
 async function approveSelected(guruId = null) {
@@ -534,6 +652,7 @@ async function approveSelected(guruId = null) {
 }
 
 function onKeydown(e) {
+  if (e.key === 'Escape') hideHint()
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault()
     searchInput.value?.focus()
@@ -544,5 +663,43 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   load()
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  clearTimeout(hintTimer)
+})
 </script>
+
+<style scoped>
+.hint-enter-active {
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hint-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.hint-enter-from,
+.hint-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+}
+.hint-shake {
+  animation: hint-shake 0.45s ease;
+}
+@keyframes hint-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-3px);
+  }
+  40% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+</style>

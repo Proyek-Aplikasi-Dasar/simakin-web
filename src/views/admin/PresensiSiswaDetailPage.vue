@@ -30,7 +30,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="py-16 text-center text-sm text-slate-400">Memuat data…</p>
+    <PageSkeleton v-if="loading" />
     <div v-else-if="loadError" class="flex flex-col items-center gap-3 py-16 text-center">
       <p class="text-sm text-red-600">{{ loadError }}</p>
       <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
@@ -221,8 +221,8 @@ import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 
-// Default sama dengan default kolom perusahaan.radius_presensi di BE (dipakai jika data belum termuat / kosong)
 const RADIUS_DEFAULT_METER = 100
 
 const props = defineProps({ id: { type: [String, Number], default: null }, siswaId: { type: [String, Number], default: null } })

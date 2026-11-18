@@ -102,7 +102,6 @@ export function groupBySiswa(lokasiList) {
   return picked
 }
 
-// Jumlah hari kerja (Senin–Jumat) antara dua tanggal ISO, inklusif. 0 bila from > to.
 export function hariKerja(from, to) {
   const a = parseDate(from)
   const b = parseDate(to)
@@ -115,7 +114,6 @@ export function hariKerja(from, to) {
   return n
 }
 
-// Potong periode ke masa PKL siswa (tanggal_mulai/selesai) dan hari ini, supaya hari yang belum terjadi tidak dihitung bolos.
 export function rentangEfektif(from, to, lokasi, today = toIso(new Date())) {
   let awal = from
   let akhir = to < today ? to : today
@@ -126,8 +124,6 @@ export function rentangEfektif(from, to, lokasi, today = toIso(new Date())) {
   return { from: awal, to: akhir }
 }
 
-// Hari efektif = hari kerja dalam rentang dikurangi libur. Hari tanpa catatan presensi dihitung tidak hadir,
-// dan tidak pernah lebih kecil dari presensi yang tercatat (hadir + izin + sakit).
 export function hitungEfektif(c, from, to) {
   return Math.max(c.hadir + c.izin + c.sakit, hariKerja(from, to) - c.libur)
 }

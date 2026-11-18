@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Presensi Siswa', to: '/guru/presensi-siswa' }, { label: `Detail ${statusInfo.label}` }]"
       :title="`Detail Presensi · ${statusInfo.label}`"
@@ -14,7 +14,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="py-16 text-center text-sm text-slate-400">Memuat data…</p>
+    <PageSkeleton v-if="loading" />
     <div v-else-if="loadError" class="flex flex-col items-center gap-3 py-16 text-center">
       <p class="text-sm text-red-600">{{ loadError }}</p>
       <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
@@ -26,13 +26,13 @@
           <span class="absolute -top-[90px] right-[160px] h-[180px] w-[180px] rounded-full bg-white/10"></span>
           <span class="absolute right-[40px] top-[10px] h-[120px] w-[120px] rounded-full bg-white/10"></span>
         </div>
-        <div class="relative flex items-end gap-6 px-6 pb-5 pt-7">
+        <div class="relative flex flex-wrap items-end gap-x-4 gap-y-3 px-4 pb-5 pt-7 sm:gap-x-6 sm:px-6">
           <span class="flex shrink-0 rounded-full bg-white p-1">
             <span class="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-9 w-9" />
             </span>
           </span>
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1 basis-40">
             <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">
               <router-link
                 v-if="siswa?.id"
@@ -51,13 +51,13 @@
             {{ statusInfo.label }}
           </span>
         </div>
-        <div class="relative grid grid-cols-1 gap-6 border-t border-slate-100 px-6 py-5 md:grid-cols-2">
+        <div class="relative grid grid-cols-1 gap-6 border-t border-slate-100 px-4 py-5 sm:px-6 md:grid-cols-2">
           <InfoItem icon="calendar" label="Tanggal Presensi" :value="tanggalLabel" />
           <InfoItem icon="building" label="Tempat PKL" :value="lokasi?.perusahaan?.nama" />
         </div>
       </section>
 
-      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div class="flex flex-col gap-6">
           <FormCard title="Informasi Presensi" :description="infoDesc">
             <div v-if="isBelum" class="flex flex-col items-center gap-2 py-8 text-center">
@@ -100,7 +100,7 @@
             title="Lokasi Presensi"
             description="Lingkaran biru: perusahaan beserta radius. Titik: lokasi siswa saat mengirim presensi."
           >
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-[1fr_1fr]">
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div class="flex flex-col gap-3">
                 <div v-if="adaPeta" class="flex gap-1 rounded-xl bg-slate-100 p-1 text-xs font-semibold">
                   <button
@@ -234,8 +234,9 @@ import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 
-// Default sama dengan default kolom perusahaan.radius_presensi di BE (dipakai jika data belum termuat / kosong)
+// default sama kayak perusahaan.radius_presensi di BE
 const RADIUS_DEFAULT_METER = 100
 
 const props = defineProps({ id: { type: [String, Number], default: null }, siswaId: { type: [String, Number], default: null } })

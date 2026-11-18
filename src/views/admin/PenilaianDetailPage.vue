@@ -21,7 +21,7 @@
       <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
     </div>
 
-    <p v-else-if="loading" class="py-16 text-center text-sm text-slate-400">Memuat data penilaian…</p>
+    <PageSkeleton v-else-if="loading" />
 
     <div v-else class="flex flex-col gap-6">
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -183,6 +183,7 @@ import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 
 const props = defineProps({ siswaId: { type: [String, Number], required: true } })
 

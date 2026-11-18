@@ -162,11 +162,9 @@
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import AppIcon from './AppIcon.vue'
 
-// Kalender bertema pengganti <input type="date"> / <input type="month"> bawaan browser.
-// Nilai memakai format yang sama dengan input native: 'YYYY-MM-DD' (mode date) atau 'YYYY-MM' (mode month).
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  mode: { type: String, default: 'date' }, // 'date' | 'month'
+  mode: { type: String, default: 'date' }, 
   min: { type: String, default: undefined },
   max: { type: String, default: undefined },
   placeholder: { type: String, default: '' },
@@ -174,8 +172,8 @@ const props = defineProps({
   disabled: Boolean,
   error: Boolean,
   clearable: Boolean,
-  size: { type: String, default: 'md' }, // 'md' (h-10 text-xs) | 'lg' (h-11 text-sm)
-  bare: Boolean, // tanpa kotak & ikon sendiri; dipakai di dalam pembungkus yang sudah bergaya
+  size: { type: String, default: 'md' }, 
+  bare: Boolean, 
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
@@ -203,7 +201,7 @@ const panelEl = ref(null)
 const open = ref(false)
 const panelStyle = ref({})
 
-const view = ref('days') // 'days' | 'months' | 'years'
+const view = ref('days') 
 const cursorY = ref(todayParts.y)
 const cursorM = ref(todayParts.m)
 const yearPageStart = ref(todayParts.y - 4)
@@ -230,7 +228,6 @@ const triggerClass = computed(() => {
   ]
 })
 
-// ---------- batas min / max ----------
 const minDate = computed(() => (props.min ? props.min.slice(0, props.mode === 'month' ? 7 : 10) : ''))
 const maxDate = computed(() => (props.max ? props.max.slice(0, props.mode === 'month' ? 7 : 10) : ''))
 const outOfRange = (iso) => (minDate.value && iso < minDate.value) || (maxDate.value && iso > maxDate.value)
@@ -239,7 +236,6 @@ const todayAllowed = computed(() =>
   !outOfRange(props.mode === 'month' ? isoMonth(todayParts.y, todayParts.m) : todayIso)
 )
 
-// ---------- tampilan ----------
 const title = computed(() => {
   if (view.value === 'days') return `${BULAN[cursorM.value]} ${cursorY.value}`
   if (view.value === 'months') return String(cursorY.value)
@@ -250,7 +246,7 @@ const cells = computed(() => {
   const y = cursorY.value
   const m = cursorM.value
   const first = new Date(y, m, 1)
-  const offset = (first.getDay() + 6) % 7 // minggu mulai Senin
+  const offset = (first.getDay() + 6) % 7 
   const out = []
   for (let i = 0; i < 42; i++) {
     const d = new Date(y, m, 1 - offset + i)
@@ -280,7 +276,6 @@ const monthCells = computed(() =>
   })
 )
 
-// Di mode date, sebuah bulan hanya nonaktif jika seluruh harinya di luar batas
 function outOfRangeMonth(y, m) {
   if (props.mode === 'month') return !!outOfRange(isoMonth(y, m))
   const lastDay = new Date(y, m + 1, 0).getDate()
@@ -358,7 +353,6 @@ function clear() {
   close(true)
 }
 
-// ---------- posisi & buka/tutup ----------
 function place() {
   const t = triggerEl.value
   if (!t) return

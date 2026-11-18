@@ -33,7 +33,6 @@
             :error="fieldErrors.email || ''"
           />
           <div class="md:col-span-2">
-            <!-- Kolom telepon belum ada di tabel users BE, jadi belum bisa disimpan -->
             <FormField
               id="telp"
               v-model="form.telp"
@@ -105,7 +104,6 @@ async function submit() {
   })
   if (!ok) return
 
-  // Segarkan data akun di store supaya nama di header dan sidebar ikut berubah
   const { data } = await api.get('/api/user')
   auth.setUser(data)
   router.push('/admin/profil')

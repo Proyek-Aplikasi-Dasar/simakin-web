@@ -76,8 +76,7 @@ const props = defineProps({
   confirmLabel: { type: String, default: 'Hapus' },
   loadingLabel: { type: String, default: 'Menghapus...' },
   icon: { type: String, default: 'trash' },
-  variant: { type: String, default: 'danger' }, // danger | warning | primary
-  // Tampilan "berhasil" setelah aksi selesai (dialog tetap terbuka sampai ditutup)
+  variant: { type: String, default: 'danger' }, 
   done: Boolean,
   doneTitle: { type: String, default: 'Data berhasil dihapus' },
   doneMessage: { type: String, default: 'Perubahan sudah disimpan dan daftar diperbarui.' },

@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="relative w-[360px] max-w-full">
+  <div ref="root" class="static min-w-0 flex-1 sm:relative sm:max-w-[360px]">
     <label
       class="flex h-10 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:border-blue-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100"
     >
@@ -14,12 +14,12 @@
         aria-controls="global-search-list"
         :aria-expanded="panelOpen"
         :aria-activedescendant="active >= 0 ? `gs-opt-${active}` : undefined"
-        :placeholder="searchData ? 'Cari siswa, perusahaan, menu…' : 'Cari menu…'"
-        class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+        :placeholder="placeholder"
+        class="min-w-0 flex-1 text-ellipsis bg-transparent text-sm outline-none placeholder:text-slate-400"
         @focus="open = true"
         @keydown="onKeydown"
       />
-      <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">
+      <span class="hidden rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500 md:block">
         Ctrl K
       </span>
     </label>
@@ -28,7 +28,7 @@
       v-if="panelOpen"
       id="global-search-list"
       role="listbox"
-      class="absolute left-0 top-12 z-30 max-h-[420px] w-[420px] max-w-[90vw] overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-lg"
+      class="absolute inset-x-3 top-[calc(100%+4px)] z-30 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-lg sm:inset-x-auto sm:left-0 sm:top-12 sm:max-h-[420px] sm:w-[420px] sm:max-w-[90vw]"
     >
       <p v-if="!term" class="px-4 py-3 text-xs text-slate-500">
         {{ searchData ? 'Ketik untuk mencari menu, siswa (nama / NIS), atau perusahaan.' : 'Ketik untuk mencari menu.' }}
@@ -78,7 +78,6 @@ import AppIcon from './AppIcon.vue'
 
 const props = defineProps({
   menuItems: { type: Array, default: () => [] },
-  // false = hanya cari menu. Hasil siswa/perusahaan mengarah ke halaman /admin, jadi dimatikan untuk guru.
   searchData: { type: Boolean, default: true },
 })
 
@@ -234,7 +233,6 @@ function onDocClick(e) {
   if (root.value && !root.value.contains(e.target)) tutup()
 }
 
-// Ctrl K: halaman yang punya pencarian sendiri sudah memanggil preventDefault(), maka dilewati
 function onShortcut(e) {
   if (e.defaultPrevented) return
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -244,12 +242,24 @@ function onShortcut(e) {
   }
 }
 
+const kecil = ref(false)
+const placeholder = computed(() => {
+  if (!props.searchData) return 'Cari menu…'
+  return kecil.value ? 'Cari menu, siswa…' : 'Cari siswa, perusahaan, menu…'
+})
+let mq = null
+const syncKecil = () => (kecil.value = mq.matches)
+
 onMounted(() => {
+  mq = window.matchMedia('(max-width: 639px)')
+  syncKecil()
+  mq.addEventListener('change', syncKecil)
   document.addEventListener('mousedown', onDocClick)
   window.addEventListener('keydown', onShortcut)
 })
 onBeforeUnmount(() => {
   clearTimeout(timer)
+  mq?.removeEventListener('change', syncKecil)
   document.removeEventListener('mousedown', onDocClick)
   window.removeEventListener('keydown', onShortcut)
 })

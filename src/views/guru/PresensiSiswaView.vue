@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Monitoring' }, { label: 'Presensi Siswa' }]"
       title="Presensi Siswa"
@@ -24,7 +24,7 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
@@ -34,13 +34,13 @@
           description="Satu kali presensi per hari."
         />
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-100 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-100 px-4 sm:px-6">
           <button
             v-for="t in tabs"
             :key="t.key"
             type="button"
             :class="[
-              '-mb-px flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold',
+              '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold',
               tab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700',
             ]"
             @click="tab = t.key"
@@ -53,8 +53,8 @@
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center gap-3 px-6 py-4" @submit.prevent="applyFilters">
-          <label class="flex h-10 min-w-[240px] flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200">
+        <form class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6" @submit.prevent="applyFilters">
+          <label class="flex h-10 w-full min-w-0 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200 sm:min-w-[240px] sm:flex-1">
             <AppIcon name="search" class="h-5 w-5 shrink-0 text-slate-400" />
             <input
               ref="searchInput"
@@ -63,17 +63,17 @@
               placeholder="Cari nama / NIS siswa…"
               class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
             />
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">Ctrl K</span>
+            <span class="hidden rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500 md:block">Ctrl K</span>
           </label>
 
-          <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+          <label class="flex h-10 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200 sm:w-[200px]">
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
             <DatePicker v-model="draft.tanggal" bare class="min-w-0 flex-1" />
           </label>
 
           <SelectDropdown
             v-model="draft.kelas"
-            class="w-[200px]"
+            class="w-full sm:w-[200px]"
             icon="users"
             placeholder="Semua Kelas"
             :options="kelasItems"
@@ -81,38 +81,35 @@
 
           <SelectDropdown
             v-model="draft.perusahaan"
-            class="w-[200px]"
+            class="w-full sm:w-[200px]"
             icon="building"
             placeholder="Semua Perusahaan"
             :options="perusahaanItems"
           />
 
-          <button type="submit" class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100">
+          <button type="submit" class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100 sm:w-auto">
             <AppIcon name="filter" class="h-5 w-5" />
             Terapkan
           </button>
         </form>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
-          <span
-            v-for="col in columns"
-            :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
-          >
-            {{ col.label }}
-          </span>
-        </div>
-
-        <SkeletonRows v-if="loading" :rows="7" :cols="4" />
-        <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <div v-if="error" class="flex flex-col items-center gap-3 border-t border-slate-100 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
         </div>
-        <p v-else-if="!pageRows.length" class="px-6 py-12 text-center text-sm text-slate-400">Tidak ada data presensi.</p>
 
-        <div v-else class="divide-y divide-slate-100">
-          <div v-for="row in pageRows" :key="row.siswaId" class="flex items-center gap-4 px-6 py-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+        <AdminTable
+          v-else
+          v-model:page="page"
+          :columns="columns"
+          :rows="filtered"
+          :per-page="PAGE_SIZE"
+          :loading="loading"
+          entity="siswa"
+          actions-width="w-[122px]"
+        >
+          <template #cell-nama="{ row }">
+            <div class="flex min-w-0 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
               </span>
@@ -121,46 +118,44 @@
                 <p class="truncate text-[11px] leading-[14px] text-slate-500">{{ row.kelas || '—' }}</p>
               </div>
             </div>
+          </template>
 
-            <span class="w-[72px] text-xs text-slate-600">{{ row.nis }}</span>
-            <span class="w-[92px] text-xs text-slate-600">{{ tanggalLabel }}</span>
-            <span class="w-[96px] text-xs text-slate-600">{{ row.jam }}</span>
+          <template #cell-tanggal>{{ tanggalLabel }}</template>
 
-            <div class="w-[128px]">
-              <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PRESENSI_STATUS[row.status].box]">
-                <span :class="['h-1.5 w-1.5 rounded-full', PRESENSI_STATUS[row.status].dot]" />
-                {{ PRESENSI_STATUS[row.status].label }}
-              </span>
-            </div>
+          <template #cell-status="{ row }">
+            <span :class="['inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PRESENSI_STATUS[row.status].box]">
+              <span :class="['h-1.5 w-1.5 rounded-full', PRESENSI_STATUS[row.status].dot]" />
+              {{ PRESENSI_STATUS[row.status].label }}
+            </span>
+          </template>
 
-            <div class="flex w-[200px] items-center gap-1.5 text-xs text-slate-600">
+          <template #cell-tempat="{ row }">
+            <div class="flex min-w-0 items-center gap-1.5">
               <AppIcon :name="row.pakaiKeterangan ? 'file-text' : 'building'" class="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span class="truncate">{{ row.tempat }}</span>
+              <span class="sm:truncate">{{ row.tempat }}</span>
             </div>
+          </template>
 
-            <div class="flex w-[90px] justify-end gap-2">
-              <router-link
-                :to="detailLink(row)"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Lihat presensi"
-                title="Lihat detail presensi"
-              >
-                <AppIcon name="eye" class="h-5 w-5" />
-              </router-link>
-              <router-link
-                v-if="!row.absensiId"
-                :to="`/guru/presensi-siswa/tambah?siswa_id=${row.siswaId}&tanggal=${applied.tanggal}`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Tambah presensi"
-                title="Tambah presensi manual"
-              >
-                <AppIcon name="pencil" class="h-5 w-5" />
-              </router-link>
-            </div>
-          </div>
-        </div>
-
-        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="siswa" />
+          <template #actions="{ row }">
+            <router-link
+              :to="detailLink(row)"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Lihat presensi"
+              title="Lihat detail presensi"
+            >
+              <AppIcon name="eye" class="h-5 w-5" />
+            </router-link>
+            <router-link
+              v-if="!row.absensiId"
+              :to="`/guru/presensi-siswa/tambah?siswa_id=${row.siswaId}&tanggal=${applied.tanggal}`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Tambah presensi"
+              title="Tambah presensi manual"
+            >
+              <AppIcon name="pencil" class="h-5 w-5" />
+            </router-link>
+          </template>
+        </AdminTable>
       </section>
     </div>
   </div>
@@ -178,21 +173,20 @@ import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
-import DataPagination from '../../components/DataPagination.vue'
-import SkeletonRows from '../../components/SkeletonRows.vue'
+import AdminTable from '../../components/AdminTable.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
 
 const PAGE_SIZE = 9
 
+// lebar kolom udah include padding 16px
 const columns = [
-  { label: 'Nama Siswa', width: 'flex-1', align: '' },
-  { label: 'NIS', width: 'w-[72px]', align: '' },
-  { label: 'Tanggal', width: 'w-[92px]', align: '' },
-  { label: 'Waktu Kirim', width: 'w-[96px]', align: '' },
-  { label: 'Status', width: 'w-[128px]', align: '' },
-  { label: 'Tempat PKL / Keterangan', width: 'w-[200px]', align: '' },
-  { label: '', width: 'w-[90px]', align: '' },
+  { key: 'nama', label: 'Nama Siswa' },
+  { key: 'nis', label: 'NIS', width: 'w-[88px]' },
+  { key: 'tanggal', label: 'Tanggal', width: 'w-[108px]' },
+  { key: 'jam', label: 'Waktu Kirim', width: 'w-[112px]' },
+  { key: 'status', label: 'Status', width: 'w-[144px]' },
+  { key: 'tempat', label: 'Tempat PKL / Keterangan', width: 'w-[216px]' },
 ]
 
 const auth = useAuthStore()
@@ -210,7 +204,7 @@ const waktuAbsen = ref(null)
 const draft = reactive({ search: '', tanggal: toIso(new Date()), kelas: '', perusahaan: '' })
 const applied = reactive({ ...draft })
 
-// Kembali dari detail -> halaman, tab, tanggal, dan filter daftar dipulihkan
+// balik dari detail, state list dipulihin
 useListState('guru-presensi-siswa', ['/guru/presensi-siswa/'], {
   snapshot: () => ({ page: page.value, tab: tab.value, applied: { ...applied } }),
   restore: (s) => {
@@ -227,7 +221,7 @@ async function loadWaktuAbsen() {
     const row = res.data?.data?.[0]
     if (row?.mulai && row?.selesai) waktuAbsen.value = { mulai: jamOnly(row.mulai), selesai: jamOnly(row.selesai) }
   } catch {
-    // jam buka presensi hanya keterangan tambahan; daftar tetap tampil tanpanya
+    // cuma info tambahan, abaikan
   }
 }
 
@@ -235,7 +229,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    // Username guru = NIP (lihat GuruController::store), jadi cocokkan ke guru.nip di lokasi PKL.
+    // username guru = NIP
     const nip = auth.user?.username
     if (!nip) throw new Error('Data akun guru tidak ditemukan.')
 
@@ -258,6 +252,7 @@ async function load() {
         const pakaiKeterangan = ['izin', 'sakit', 'libur'].includes(status)
         const perusahaan = l.perusahaan?.nama ?? '—'
         return {
+          id: l.siswa.id,
           siswaId: l.siswa.id,
           absensiId: a?.id ?? null,
           nama: l.siswa.nama,
@@ -319,7 +314,7 @@ const tabs = computed(() => [
 ])
 
 const stats = computed(() => {
-  // Saat memuat, nilai dikosongkan agar StatCard menampilkan bayangan, bukan angka 0 yang menyesatkan
+  // null pas loading biar StatCard tampil skeleton
   const v = (n) => (loading.value ? null : n)
   return [
     { label: 'Hadir', value: v(count('hadir')), hint: loading.value ? '' : `dari ${base.value.length} siswa aktif`, icon: 'user-check', tone: 'green' },
@@ -336,17 +331,13 @@ const stats = computed(() => {
 })
 
 const filtered = computed(() => (tab.value === 'semua' ? base.value : base.value.filter((r) => r.status === tab.value)))
-const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
-const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
 const detailLink = (r) =>
   r.absensiId
     ? `/guru/presensi-siswa/${r.absensiId}`
     : `/guru/presensi-siswa/belum/${r.siswaId}?tanggal=${applied.tanggal}`
 
-// Ekspor presensi ke Excel; BE membatasi data ke siswa bimbingan guru ini
+// BE udah batasin ke siswa bimbingan guru
 async function exportExcel() {
   if (tab.value === 'belum') {
     toast.show('Siswa yang belum presensi tidak ada di data ekspor.', 'error')

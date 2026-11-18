@@ -14,12 +14,12 @@
       </router-link>
       <button
         type="button"
-        :disabled="!rows.length"
+        :disabled="!rows.length || exporting"
         class="flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        @click="exportCsv"
+        @click="exportExcel"
       >
         <AppIcon name="download" class="h-4 w-4" />
-        Export CSV
+        {{ exporting ? 'Mengekspor…' : 'Export Excel' }}
       </button>
     </PageHeader>
 
@@ -76,16 +76,30 @@
         </div>
 
         <form class="flex flex-wrap items-center justify-between gap-3 px-6 py-4" @submit.prevent="applyRange">
-          <div class="flex items-center gap-2">
-            <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+          <div class="relative" @keydown.esc="showRange = false">
+            <button
+              type="button"
+              class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 hover:bg-slate-50"
+              :aria-expanded="showRange"
+              @click="showRange = !showRange"
+            >
               <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
-              <DatePicker v-model="range.from" :max="range.to" bare />
-            </label>
-            <span class="text-xs text-slate-500">s/d</span>
-            <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
-              <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
-              <DatePicker v-model="range.to" :min="range.from" bare />
-            </label>
+              {{ rangeLabel }}
+              <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 8l5 5 5-5" />
+              </svg>
+            </button>
+            <div v-if="showRange" class="absolute left-0 top-12 z-20 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+              <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+                <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
+                <DatePicker v-model="range.from" :max="range.to" bare />
+              </label>
+              <span class="text-xs text-slate-500">s/d</span>
+              <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+                <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
+                <DatePicker v-model="range.to" :min="range.from" bare />
+              </label>
+            </div>
           </div>
           <button
             type="submit"
@@ -106,7 +120,7 @@
           </span>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat riwayat presensi…</p>
+        <SkeletonRows v-if="loading" :rows="7" :cols="4" :avatar="false" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="loadRows">
@@ -122,6 +136,7 @@
             <span class="w-[130px] text-xs leading-[18px] text-slate-900">{{ formatDate(r.tanggal, true) }}</span>
             <span class="w-[90px] text-xs leading-[18px] text-slate-600">{{ hariName(r.tanggal) }}</span>
             <span class="w-[110px] text-xs leading-[18px] text-slate-600">{{ jamOnly(r.jam_masuk) }}</span>
+            <span class="w-[110px] text-xs leading-[18px] text-slate-600">{{ jamShift(r) }}</span>
             <div class="w-[110px]">
               <span
                 :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', ABSEN_STATUS[r.status]?.box]"
@@ -232,6 +247,7 @@ import {
   formatDate,
   hariName,
   jamOnly,
+  parseDate,
   toIso,
   ABSEN_STATUS,
 } from '../../utils/siswa'
@@ -239,6 +255,7 @@ import { fotoUrl } from '../../utils/presensi'
 import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
 import DatePicker from '../../components/DatePicker.vue'
 import DataPagination from '../../components/DataPagination.vue'
 
@@ -262,6 +279,7 @@ const columns = [
   { label: 'Tanggal', width: 'w-[130px]', align: '' },
   { label: 'Hari', width: 'w-[90px]', align: '' },
   { label: 'Waktu Kirim', width: 'w-[110px]', align: '' },
+  { label: 'Jam Shift', width: 'w-[110px]', align: '' },
   { label: 'Status', width: 'w-[110px]', align: '' },
   { label: 'Keterangan', width: 'flex-1', align: '' },
   { label: 'Aksi', width: 'w-[60px]', align: 'text-right' },
@@ -337,27 +355,47 @@ function applyRange() {
   }
   applied.from = range.from
   applied.to = range.to
+  showRange.value = false
   loadRows()
 }
 
-function exportCsv() {
-  const lines = [
-    ['Tanggal', 'Hari', 'Waktu Kirim', 'Status', 'Keterangan'],
-    ...rows.value.map((r) => [
-      r.tanggal,
-      hariName(r.tanggal),
-      jamOnly(r.jam_masuk),
-      ABSEN_STATUS[r.status]?.label ?? r.status,
-      r.keterangan ?? '',
-    ]),
-  ]
-  const csv = '\ufeff' + lines.map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n')
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `presensi-${siswa.value?.nis ?? props.id}-${applied.from}_${applied.to}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+const showRange = ref(false)
+const exporting = ref(false)
+
+const rangeLabel = computed(() => {
+  const a = parseDate(applied.from)
+  const b = parseDate(applied.to)
+  if (!a || !b) return 'Pilih periode'
+  const sameMonth = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+  return sameMonth
+    ? `${String(a.getDate()).padStart(2, '0')} – ${formatDate(applied.to, true)}`
+    : `${formatDate(applied.from, true)} – ${formatDate(applied.to, true)}`
+})
+
+function jamShift(r) {
+  if (!r.jam_shift_mulai && !r.jam_shift_selesai) return '—'
+  return `${jamOnly(r.jam_shift_mulai)}–${jamOnly(r.jam_shift_selesai)}`
+}
+
+async function exportExcel() {
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    const res = await api.get('/api/absensi/export', {
+      params: { siswa_id: props.id, tanggal_mulai: applied.from, tanggal_selesai: applied.to },
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `presensi-${siswa.value?.nis ?? props.id}-${applied.from}_${applied.to}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    toast.show('Gagal mengekspor presensi.', 'error')
+  } finally {
+    exporting.value = false
+  }
 }
 
 onMounted(() => {

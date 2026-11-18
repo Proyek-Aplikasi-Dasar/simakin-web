@@ -10,9 +10,6 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
-// Ikon marker bawaan Leaflet tidak ikut ter-bundle oleh Vite, jadi diarahkan manual.
-// _getIconUrl dihapus: bawaannya menempelkan path hasil deteksi CSS di depan URL dari Vite,
-// sehingga gambar marker rusak (tampil sebagai teks alt "Marker").
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
@@ -24,7 +21,6 @@ const props = defineProps({
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },
   zoom: { type: Number, default: 16 },
-  // true = klik di peta atau geser marker untuk memilih titik (emit 'pick')
   selectable: Boolean,
 })
 const emit = defineEmits(['pick'])
@@ -65,7 +61,6 @@ function render() {
     return
   }
 
-  // Marker sudah ada: jangan ubah zoom yang sedang dipakai pengguna
   marker.setLatLng(pos)
   if (!map.getBounds().contains(pos)) map.panTo(pos)
 }

@@ -1,19 +1,10 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Utama' }, { label: 'Dashboard' }]"
       :title="`Selamat ${waktu}, ${auth.user?.name ?? ''}`"
       subtitle="Ringkasan data global dan aktivitas sistem SimakIn hari ini."
     >
-      <button
-        type="button"
-        disabled
-        title="Segera hadir"
-        class="flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold leading-5 opacity-50"
-      >
-        <AppIcon name="download" class="h-5 w-5" />
-        Unduh Laporan
-      </button>
       <router-link
         to="/admin/pengajuan-pkl"
         class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold leading-5 text-white hover:bg-blue-700"
@@ -25,13 +16,13 @@
 
     <div class="flex flex-col gap-6">
       <section
-        class="relative flex items-center gap-6 overflow-hidden rounded-3xl bg-blue-600 px-8 py-6 text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.35)]"
+        class="relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl bg-blue-600 px-5 py-5 text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.35)] sm:flex-row sm:items-center sm:gap-6 sm:px-8 sm:py-6"
       >
         <div class="absolute -top-[120px] left-[820px] h-[260px] w-[260px] rounded-full bg-blue-700"></div>
         <div class="absolute left-[960px] top-[40px] h-[180px] w-[180px] rounded-full bg-blue-700"></div>
         <div class="absolute left-[60px] top-[70px] h-[120px] w-[120px] rounded-full bg-blue-700"></div>
 
-        <div class="relative flex flex-col gap-2">
+        <div class="relative flex min-w-0 flex-col gap-2">
           <span
             v-if="loadingGelombang"
             class="block h-6 w-64 max-w-full animate-pulse rounded-full bg-white/25"
@@ -53,8 +44,8 @@
             Verifikasi pengajuan siswa agar penempatan dan guru pembimbing bisa segera ditetapkan.
           </p>
 
-          <div class="flex items-center gap-3">
-            <div class="h-2 w-80 overflow-hidden rounded-full bg-white">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div class="h-2 w-full overflow-hidden rounded-full bg-white sm:w-80">
               <div
                 class="h-full rounded-full bg-yellow-400 transition-all duration-500"
                 :style="{ width: `${persenPenempatan ?? 0}%` }"
@@ -76,7 +67,7 @@
         </router-link>
       </section>
 
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loadingRingkasan" />
       </section>
 
@@ -88,7 +79,7 @@
             action="Lihat semua"
             to="/admin/pengajuan-pkl"
           />
-          <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
+          <div class="hidden items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5 sm:flex">
             <span class="flex-1 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Siswa</span>
             <span class="w-[170px] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Perusahaan</span>
             <span class="w-[101px] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Status</span>
@@ -99,7 +90,7 @@
             <li
               v-for="i in 5"
               :key="i"
-              class="flex items-center gap-4 border-t border-slate-100 px-6 py-3 first:border-t-0"
+              class="flex items-center gap-3 border-t border-slate-100 px-4 py-3 first:border-t-0 sm:gap-4 sm:px-6"
             >
               <div class="flex min-w-0 flex-1 items-center gap-2.5">
                 <span class="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200"></span>
@@ -108,7 +99,7 @@
                   <span class="h-2.5 w-24 max-w-full animate-pulse rounded bg-slate-100"></span>
                 </div>
               </div>
-              <span class="h-3 w-[170px] animate-pulse rounded bg-slate-200"></span>
+              <span class="hidden h-3 w-[170px] animate-pulse rounded bg-slate-200 sm:block"></span>
               <span class="h-6 w-[101px] animate-pulse rounded-full bg-slate-100"></span>
               <span class="h-10 w-10 animate-pulse rounded-xl bg-slate-100"></span>
             </li>
@@ -117,7 +108,7 @@
             <li
               v-for="row in pengajuanTerbaru"
               :key="row.id"
-              class="flex items-center gap-4 border-t border-slate-100 px-6 py-3 first:border-t-0"
+              class="flex items-center gap-3 border-t border-slate-100 px-4 py-3 first:border-t-0 sm:gap-4 sm:px-6"
             >
               <div class="flex min-w-0 flex-1 items-center gap-2.5">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -128,14 +119,15 @@
                   <p class="truncate text-[11px] leading-[14px] text-slate-500">
                     NIS {{ row.siswa?.nis ?? '-' }}<template v-if="row.siswa?.jurusan"> · {{ row.siswa.jurusan.kode }}</template>
                   </p>
+                  <p class="truncate text-[11px] leading-[14px] text-slate-500 sm:hidden">{{ row.perusahaan?.nama ?? '-' }}</p>
                 </div>
               </div>
 
-              <p class="w-[170px] truncate text-xs leading-[18px] text-slate-600" :title="row.perusahaan?.nama">
+              <p class="hidden w-[170px] truncate text-xs leading-[18px] text-slate-600 sm:block" :title="row.perusahaan?.nama">
                 {{ row.perusahaan?.nama ?? '-' }}
               </p>
 
-              <div class="w-[101px]">
+              <div class="shrink-0 sm:w-[101px]">
                 <span
                   :class="[
                     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
@@ -149,7 +141,7 @@
 
               <router-link
                 :to="`/admin/pengajuan-pkl/${row.id}`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
                 aria-label="Lihat detail pengajuan"
                 title="Lihat detail pengajuan"
               >
@@ -164,7 +156,7 @@
 
         <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <CardHeader title="Akses Cepat" description="Pintasan tugas admin." />
-          <div class="grid grid-cols-2 gap-3 px-6 py-1">
+          <div class="grid grid-cols-2 gap-3 px-4 py-1 sm:px-6">
             <router-link
               v-for="item in shortcuts"
               :key="item.label"
@@ -191,7 +183,7 @@
 
           <div
             v-if="loadingKehadiran"
-            class="flex flex-1 gap-8 px-6 py-3"
+            class="flex flex-1 flex-col gap-4 px-4 py-3 sm:flex-row sm:gap-8 sm:px-6"
             role="status"
             aria-busy="true"
             aria-label="Memuat data"
@@ -204,7 +196,7 @@
               </li>
             </ul>
           </div>
-          <div v-else-if="kehadiranJurusan.length" class="flex flex-1 gap-8 px-6 py-3">
+          <div v-else-if="kehadiranJurusan.length" class="flex flex-1 flex-col gap-4 px-4 py-3 sm:flex-row sm:gap-8 sm:px-6">
             <ul v-for="(kolom, i) in kolomKehadiran" :key="i" class="flex min-w-0 flex-1 flex-col gap-4 self-start">
               <li v-for="j in kolom" :key="j.id" class="flex items-center gap-3">
                 <span class="w-11 shrink-0 truncate text-[10px] font-semibold leading-[14px] text-slate-600" :title="j.nama">{{ j.kode }}</span>
@@ -230,7 +222,7 @@
             {{ errors.kehadiran ? 'Gagal memuat data kehadiran.' : 'Data kehadiran belum tersedia.' }}
           </p>
 
-          <div class="flex gap-4 px-8 py-4">
+          <div class="flex flex-wrap gap-x-4 gap-y-2 px-4 py-4 sm:px-8">
             <span class="flex items-center gap-2 text-[11px] font-medium leading-[14px] text-slate-600">
               <span class="h-2 w-2 rounded-full bg-blue-600"></span>
               ≥ 90% sesuai target
@@ -313,7 +305,6 @@ const gelombang = ref(null)
 const perusahaanKuota = ref(null) 
 const pengajuan = ref([]) 
 const kehadiranJurusan = ref([])
-// Dihitung langsung dari daftar pengajuan: ringkasan dashboard di-cache BE 10 menit sehingga angkanya bisa basi
 const pengajuanPending = ref(null)
 
 const isoLokal = (d) =>
@@ -534,8 +525,6 @@ async function loadKehadiranJurusan() {
   })
 }
 
-// Tiap bagian dashboard ditampilkan begitu datanya datang, tidak menunggu yang paling lambat
-// (rekap kehadiran per jurusan adalah yang terberat).
 onMounted(() => {
   api.get('/api/dashboard/admin')
     .then((res) => {

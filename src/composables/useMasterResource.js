@@ -3,7 +3,6 @@ import api, { getErrorMessage } from '../services/api'
 import { useToastStore } from '../stores/toast'
 import { fetchAllPages } from '../utils/siswa'
 
-// Dulu mengambil halaman satu per satu secara berurutan; sekarang paralel + cache.
 export function fetchAll(url) {
   return fetchAllPages(url)
 }
@@ -18,7 +17,7 @@ export function useMasterResource(
   const loading = ref(false)
   const saving = ref(false)
   const error = ref('')
-  const fieldErrors = ref({}) // { nama: 'pesan error', ... } dari respons 422
+  const fieldErrors = ref({}) 
 
   async function load() {
     loading.value = true
@@ -60,7 +59,6 @@ export function useMasterResource(
           Object.entries(errors).map(([field, messages]) => [field, messages[0]])
         )
       } else if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {
-        // 401/403/419/429/5xx sudah ditangani interceptor di api.js
         toast.show(getErrorMessage(err), 'error')
       }
       return false

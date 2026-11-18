@@ -21,9 +21,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-400">
-      Memuat data...
-    </p>
+    <PageSkeleton v-if="loading" />
     <div v-else-if="loadError" class="flex flex-col items-center gap-3 rounded-2xl border border-slate-100 bg-white p-8 text-center">
       <p class="text-sm text-red-600">{{ loadError }}</p>
       <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">
@@ -47,15 +45,25 @@
 
           <div class="flex min-w-0 flex-1 flex-col gap-1">
             <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ data.nama }}</h2>
-            <p class="text-xs leading-[18px] text-slate-500">{{ data.alamat || '—' }}</p>
+            <p class="text-xs leading-[18px] text-slate-500">{{ [data.bidang_usaha, data.alamat].filter(Boolean).join(' · ') || '—' }}</p>
           </div>
+
+          <span
+            :class="[
+              'inline-flex items-center gap-1.5 self-end rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
+              data.is_active === false ? 'border-slate-200 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+            ]"
+          >
+            <span :class="['h-1.5 w-1.5 rounded-full', data.is_active === false ? 'bg-slate-600' : 'bg-emerald-700']" />
+            {{ data.is_active === false ? 'Tidak Aktif' : 'Mitra Aktif' }}
+          </span>
         </div>
 
         <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
-          <InfoItem icon="user" label="Pimpinan" :value="data.pimpinan" />
+          <InfoItem icon="user" label="Pembimbing Industri" :value="data.pembimbing_industri" />
           <InfoItem icon="user-check" label="Guru Pembimbing" :value="guruText" />
-          <InfoItem icon="briefcase" label="Kuota" :value="kuotaText" />
-          <InfoItem icon="calendar" label="Gelombang" :value="gelombangText" />
+          <InfoItem icon="briefcase" label="Kuota" :value="kuotaText" :hint="sisaText" />
+          <InfoItem icon="calendar" label="Periode" :value="periodeValue" :hint="periodeHint" />
         </div>
       </section>
 
@@ -76,22 +84,13 @@
                 Koordinat belum diisi untuk perusahaan ini
               </div>
               <InfoItem icon="crosshair" label="Koordinat" :value="koordinat" />
-              <a
-                v-if="mapsUrl"
-                :href="mapsUrl"
-                target="_blank"
-                rel="noopener"
-                class="text-xs font-semibold text-blue-600 hover:underline"
-              >
-                Buka di Google Maps
-              </a>
             </div>
           </FormCard>
 
-          <FormCard title="Siswa Ditempatkan" description="Penempatan siswa di lokasi ini beserta statusnya.">
+          <FormCard title="Siswa Ditempatkan" :description="`${aktifList.length} siswa aktif di lokasi ini.`">
             <template #action>
               <router-link
-                :to="`/admin/lokasi-penempatan/tambah?perusahaan_id=${id}`"
+                :to="`/admin/lokasi-penempatan/tambah?perusahaan_id=${id}&from=detail`"
                 class="text-xs font-semibold text-blue-600 hover:underline"
               >
                 Tambah Siswa
@@ -103,7 +102,7 @@
                 <thead class="bg-slate-100">
                   <tr>
                     <th
-                      v-for="h in ['Siswa', 'Guru', 'Gelombang', 'Status']"
+                      v-for="h in ['Siswa', 'Status', 'Presensi Hari Ini']"
                       :key="h"
                       class="px-6 py-2.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-slate-500"
                     >
@@ -116,7 +115,7 @@
                 </thead>
                 <tbody>
                   <tr v-if="!penempatan.length">
-                    <td colspan="5" class="px-6 py-10 text-center text-xs text-slate-400">
+                    <td colspan="4" class="px-6 py-10 text-center text-xs text-slate-400">
                       Belum ada siswa yang ditempatkan di lokasi ini.
                     </td>
                   </tr>
@@ -125,8 +124,6 @@
                       <p class="text-xs font-semibold text-slate-900">{{ row.siswa?.nama ?? '—' }}</p>
                       <p class="text-[11px] text-slate-500">NIS {{ row.siswa?.nis ?? '—' }}</p>
                     </td>
-                    <td class="px-6 py-3 text-xs text-slate-600">{{ row.guru?.nama ?? '—' }}</td>
-                    <td class="px-6 py-3 text-xs text-slate-600">{{ row.gelombang?.nama ?? '—' }}</td>
                     <td class="px-6 py-3">
                       <span
                         :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', LOKASI_BADGE[row.status].box]"
@@ -134,6 +131,16 @@
                         <span :class="['h-1.5 w-1.5 rounded-full', LOKASI_BADGE[row.status].dot]" />
                         {{ LOKASI_BADGE[row.status].label }}
                       </span>
+                    </td>
+                    <td class="px-6 py-3">
+                      <span
+                        v-if="absenOf(row)"
+                        :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', absenOf(row).box]"
+                      >
+                        <span :class="['h-1.5 w-1.5 rounded-full', absenOf(row).dot]" />
+                        {{ absenOf(row).label }}
+                      </span>
+                      <span v-else class="text-xs text-slate-400">{{ row.status === 'active' ? 'Belum presensi' : '—' }}</span>
                     </td>
                     <td class="px-6 py-3">
                       <div class="flex items-center justify-end gap-1.5">
@@ -151,7 +158,16 @@
                           {{ n.label }}
                         </button>
                         <router-link
-                          :to="`/admin/lokasi-penempatan/penempatan/${row.id}/edit`"
+                          v-if="row.siswa?.id"
+                          :to="`/admin/master-data/siswa/${row.siswa.id}`"
+                          class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                          aria-label="Lihat siswa"
+                          title="Lihat detail siswa"
+                        >
+                          <AppIcon name="eye" class="h-4 w-4" />
+                        </router-link>
+                        <router-link
+                          :to="`/admin/lokasi-penempatan/penempatan/${row.id}/edit?from=detail`"
                           class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
                           aria-label="Edit penempatan"
                           title="Edit penempatan"
@@ -177,19 +193,16 @@
         </div>
 
         <div class="flex flex-col gap-6">
-          <FormCard title="Ringkasan Penempatan" description="Jumlah penempatan berdasarkan status.">
+          <FormCard title="Ringkasan Kehadiran" description="Minggu ini di lokasi ini.">
             <ul class="flex flex-col gap-3 text-sm">
-              <li v-for="r in ringkasan" :key="r.label" class="flex items-center justify-between">
+              <li v-for="r in kehadiran" :key="r.label" class="flex items-center justify-between">
                 <span class="flex items-center gap-2.5 text-slate-600">
                   <span :class="['h-2 w-2 rounded-full', r.dot]"></span>
                   {{ r.label }}
                 </span>
-                <span class="font-semibold text-slate-900">{{ r.count }}</span>
+                <span class="font-semibold text-slate-900">{{ r.value }}</span>
               </li>
             </ul>
-            <p class="mt-4 text-[11px] text-slate-400">
-              Data presensi per lokasi belum tersedia di BE.
-            </p>
           </FormCard>
 
           <FormCard title="Kontak Perusahaan">
@@ -230,10 +243,11 @@ import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import MapView from '../../components/MapView.vue'
 import api, { getErrorMessage } from '../../services/api'
-import { fetchAllPages } from '../../utils/siswa'
+import { fetchAllPages, formatDate, toIso, ABSEN_STATUS } from '../../utils/siswa'
 import { LOKASI_BADGE, LOKASI_NEXT, MEMAKAI_KUOTA, terisiOf } from '../../utils/lokasi'
 import { useToastStore } from '../../stores/toast'
 
@@ -248,6 +262,8 @@ const loading = ref(true)
 const loadError = ref('')
 const data = ref({})
 const penempatan = ref([])
+const gelombangList = ref([])
+const absensiMinggu = ref([])
 
 const busyId = ref(null)
 const toCancel = ref(null)
@@ -268,23 +284,68 @@ const gelombangText = computed(() =>
   [...new Set(aktifList.value.map((l) => l.gelombang && `${l.gelombang.nama} ${l.gelombang.tahun_ajaran}`).filter(Boolean))].join(', ')
 )
 
-const ringkasan = computed(() =>
-  Object.entries(LOKASI_BADGE).map(([status, b]) => ({
-    label: b.label,
-    dot: b.dot,
-    count: penempatan.value.filter((l) => l.status === status).length,
-  }))
+const sisaText = computed(() =>
+  data.value.kuota != null ? `Sisa ${Math.max(data.value.kuota - terisiOf(penempatan.value), 0)} kursi` : ''
 )
+
+const periodeText = computed(() => {
+  const ids = new Set(aktifList.value.map((l) => l.gelombang?.id).filter(Boolean))
+  const g = gelombangList.value.filter((x) => ids.has(x.id))
+  if (!g.length) return ''
+  const mulai = g.map((x) => x.praktik_mulai).sort()[0]
+  const selesai = g.map((x) => x.praktik_selesai).sort().at(-1)
+  return `${formatDate(mulai)} – ${formatDate(selesai)}`
+})
+const periodeValue = computed(() => periodeText.value || gelombangText.value)
+const periodeHint = computed(() => (periodeText.value ? gelombangText.value : ''))
+
+const todayIso = toIso(new Date())
+
+const presensiHariIni = computed(() => {
+  const map = {}
+  absensiMinggu.value.forEach(({ sid, rows }) => {
+    const r = rows.find((x) => String(x.tanggal).slice(0, 10) === todayIso)
+    if (r) map[sid] = r.status
+  })
+  return map
+})
+const absenOf = (row) => ABSEN_STATUS[presensiHariIni.value[row.siswa?.id]] ?? null
+
+const kehadiran = computed(() => {
+  const c = { hadir: 0, izin: 0, sakit: 0 }
+  absensiMinggu.value.forEach(({ rows }) => rows.forEach((r) => r.status in c && c[r.status]++))
+  const total = c.hadir + c.izin + c.sakit
+  const pct = (n) => (total ? `${Math.round((n / total) * 100)}%` : '—')
+  return [
+    { label: 'Hadir', dot: 'bg-emerald-700', value: pct(c.hadir) },
+    { label: 'Izin', dot: 'bg-blue-700', value: pct(c.izin) },
+    { label: 'Sakit', dot: 'bg-yellow-700', value: pct(c.sakit) },
+  ]
+})
+
+async function loadTambahan() {
+  const d = new Date()
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  const senin = toIso(d)
+  const ids = [...new Set(aktifList.value.map((l) => l.siswa?.id).filter(Boolean))]
+  const [gel, ...abs] = await Promise.allSettled([
+    api.get('/api/gelombang'),
+    ...ids.map(async (sid) => {
+      const res = await api.get('/api/absensi', {
+        params: { siswa_id: sid, tanggal_mulai: senin, tanggal_selesai: todayIso },
+      })
+      return { sid, rows: res.data.data ?? [] }
+    }),
+  ])
+  if (gel.status === 'fulfilled') gelombangList.value = gel.value.data.data ?? []
+  absensiMinggu.value = abs.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+}
 
 const koordinat = computed(() => {
   const { latitude, longitude } = data.value
   if (latitude == null || longitude == null) return ''
   return `${Number(latitude)}, ${Number(longitude)}`
 })
-
-const mapsUrl = computed(() =>
-  koordinat.value ? `https://www.google.com/maps?q=${encodeURIComponent(koordinat.value)}` : ''
-)
 
 const point = computed(() => {
   const { latitude, longitude } = data.value
@@ -304,6 +365,7 @@ async function load() {
     ])
     data.value = p.data.data
     penempatan.value = l
+    loadTambahan()
   } catch (err) {
     loadError.value =
       err.response?.status === 404 ? 'Lokasi tidak ditemukan.' : getErrorMessage(err, 'Gagal memuat data.')

@@ -43,7 +43,7 @@
               :disabled="isEdit"
             />
             <FormField
-              v-if="isEdit"
+              v-if="showEmail"
               id="email"
               v-model="form.email"
               type="email"
@@ -51,13 +51,23 @@
               placeholder="Masukkan email"
               :error="errors.email"
             />
+            <FormField
+              v-if="showTelp"
+              id="telp"
+              v-model="form.telp"
+              type="tel"
+              inputmode="tel"
+              label="Nomor Telepon"
+              placeholder="Masukkan nomor telepon"
+              :maxlength="20"
+              :error="errors.telp"
+            />
           </div>
           <RadioCardGroup
             id="role"
             v-model="form.role"
             label="Peran Pengguna"
             :options="roleOptions"
-            :hint="isEdit ? '' : 'Akun guru dibuat lewat menu Guru Pembimbing, akun siswa lewat menu Siswa PKL.'"
             :error="errors.role"
             :disabled="isEdit"
           />
@@ -150,37 +160,59 @@ const form = reactive({
   nama: '',
   nip: '',
   email: '',
-  // /api/register hanya membuat baris users. Akun guru/siswa harus dibuat lewat menu masing-masing
-  // supaya baris guru/siswa ikut terbuat, jadi saat tambah akun hanya admin yang bisa dipilih.
-  role: 'admin',
+  telp: '',
+  role: 'guru',
   password: '',
   passwordConfirmation: '',
 })
 
 const roleOptions = computed(() => [
   { value: 'admin', label: 'Administrator' },
-  { value: 'guru', label: 'Guru Pembimbing', disabled: !isEdit },
-  { value: 'siswa', label: 'Siswa', disabled: !isEdit },
+  { value: 'guru', label: 'Guru Pembimbing' },
+  { value: 'siswa', label: 'Siswa' },
 ])
 
-const { saving, fieldErrors, save } = useMasterResource(isEdit ? '/api/users' : '/api/register', {
-  name: 'Akun',
-  reload: false,
-})
+const userRes = useMasterResource(isEdit ? '/api/users' : '/api/register', { name: 'Akun', reload: false })
+const guruRes = useMasterResource('/api/guru', { name: 'Akun', reload: false })
+const siswaRes = useMasterResource('/api/siswa', { name: 'Akun', reload: false })
+const { save } = userRes
+const telpSaving = ref(false)
+const saving = computed(
+  () => userRes.saving.value || guruRes.saving.value || siswaRes.saving.value || telpSaving.value
+)
+const fieldErrors = computed(() => ({
+  ...guruRes.fieldErrors.value,
+  ...siswaRes.fieldErrors.value,
+  ...userRes.fieldErrors.value,
+}))
+
+const telpUrl = ref('')
+const telpAwal = ref('')
+const telpLoaded = ref(false)
+const showTelp = computed(() => ['guru', 'siswa'].includes(form.role) && (!isEdit || telpLoaded.value))
+const showEmail = computed(() => isEdit || form.role === 'siswa')
 
 const loading = ref(false)
 const pwSaving = ref(false)
-const localErrors = reactive({ nama: '', nip: '' })
+const localErrors = reactive({ nama: '', nip: '', telp: '' })
 const pwErrors = reactive({ password: '', confirmation: '' })
 
 watch(() => form.nama, () => (localErrors.nama = ''))
 watch(() => form.nip, () => (localErrors.nip = ''))
+watch(() => form.telp, () => (localErrors.telp = ''))
 watch(() => form.password, () => (pwErrors.password = ''))
 watch(() => form.passwordConfirmation, () => (pwErrors.confirmation = ''))
 
 const errors = computed(() => ({
   nama: localErrors.nama || fieldErrors.value.name || '',
-  nip: localErrors.nip || fieldErrors.value.username || fieldErrors.value.password || '',
+  nip:
+    localErrors.nip ||
+    fieldErrors.value.nip ||
+    fieldErrors.value.nis ||
+    fieldErrors.value.username ||
+    fieldErrors.value.password ||
+    '',
+  telp: localErrors.telp || fieldErrors.value.telp || '',
   email: fieldErrors.value.email || '',
   role: fieldErrors.value.role_id || '',
 }))
@@ -194,10 +226,23 @@ async function loadUser() {
     form.nip = u.guru?.nip ?? u.siswa?.nis ?? u.username ?? ''
     form.email = u.email ?? ''
     form.role = ROLE_MAP[u.role_id] ?? 'guru'
+    if (form.role === 'guru' && u.guru?.id) await loadTelp(`/api/guru/${u.guru.id}`)
+    else if (form.role === 'siswa' && u.siswa?.id) await loadTelp(`/api/siswa/${u.siswa.id}`)
   } catch (err) {
     toast.show(getErrorMessage(err, 'Gagal memuat data akun.'), 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function loadTelp(url) {
+  try {
+    const { data } = await api.get(url, { skipErrorToast: true })
+    form.telp = data.data?.telp ?? ''
+    telpAwal.value = form.telp
+    telpUrl.value = url
+    telpLoaded.value = true
+  } catch {
   }
 }
 
@@ -211,9 +256,51 @@ async function submit() {
 
   localErrors.nama = form.nama.trim() ? '' : 'Kolom ini wajib diisi'
   localErrors.nip = form.nip.trim() ? '' : 'Kolom ini wajib diisi'
-  if (localErrors.nama || localErrors.nip) return
-
+  localErrors.telp = ''
   const nip = form.nip.trim()
+  if (form.role === 'guru' || form.role === 'siswa') {
+    if (form.telp.trim().length > 20) localErrors.telp = 'Nomor telepon maksimal 20 karakter.'
+    if (nip && nip.length < 8) {
+      localErrors.nip = `${form.role === 'siswa' ? 'NIS' : 'NIP'} minimal 8 karakter agar bisa jadi kata sandi awal.`
+    }
+  }
+  if (localErrors.nama || localErrors.nip || localErrors.telp) return
+
+  if (form.role === 'guru') {
+    const okGuru = await guruRes.save({
+      mode: 'create',
+      row: null,
+      values: {
+        name: form.nama.trim(),
+        nip,
+        username: nip,
+        telp: form.telp.trim() || null,
+        password: nip,
+        password_confirmation: nip,
+      },
+    })
+    if (okGuru) router.push(backTo)
+    return
+  }
+
+  if (form.role === 'siswa') {
+    const okSiswa = await siswaRes.save({
+      mode: 'create',
+      row: null,
+      values: {
+        name: form.nama.trim(),
+        nis: nip,
+        username: nip,
+        email: form.email.trim() || null,
+        telp: form.telp.trim() || null,
+        password: nip,
+        password_confirmation: nip,
+      },
+    })
+    if (okSiswa) router.push(backTo)
+    return
+  }
+
   const ok = await save({
     mode: 'create',
     row: null,
@@ -230,7 +317,8 @@ async function submit() {
 
 async function submitEdit() {
   localErrors.nama = form.nama.trim() ? '' : 'Kolom ini wajib diisi'
-  if (localErrors.nama) return
+  localErrors.telp = showTelp.value && form.telp.trim().length > 20 ? 'Nomor telepon maksimal 20 karakter.' : ''
+  if (localErrors.nama || localErrors.telp) return
 
   const ok = await save({
     mode: 'edit',
@@ -240,7 +328,27 @@ async function submitEdit() {
       email: form.email.trim() || null,
     },
   })
-  if (ok) router.push(backTo)
+  if (!ok) return
+
+  const telp = form.telp.trim()
+  if (showTelp.value && telp !== telpAwal.value) {
+    telpSaving.value = true
+    try {
+      await api.put(telpUrl.value, { telp: telp || null })
+    } catch (err) {
+      const status = err.response?.status
+      if (status === 422) {
+        localErrors.telp = err.response.data?.errors?.telp?.[0] ?? getErrorMessage(err, 'Nomor telepon tidak valid.')
+        toast.show('Akun tersimpan, tetapi nomor telepon gagal disimpan.', 'error')
+      } else if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {
+        toast.show(getErrorMessage(err), 'error')
+      }
+      return
+    } finally {
+      telpSaving.value = false
+    }
+  }
+  router.push(backTo)
 }
 
 async function submitPassword() {

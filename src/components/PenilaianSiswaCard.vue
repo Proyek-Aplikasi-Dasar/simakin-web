@@ -44,10 +44,10 @@ import InfoItem from './InfoItem.vue'
 import AppIcon from './AppIcon.vue'
 
 const props = defineProps({
-  siswa: { type: Object, default: null }, // { nama, nis, kelas }
-  info: { type: Object, default: null }, // { programStudi, tempat, pembimbingIndustri, periode }
+  siswa: { type: Object, default: null }, 
+  info: { type: Object, default: null }, 
   statusLabel: { type: String, default: '' },
-  statusTone: { type: String, default: 'neutral' }, // 'neutral' | 'success'
+  statusTone: { type: String, default: 'neutral' }, 
   loading: Boolean,
 })
 

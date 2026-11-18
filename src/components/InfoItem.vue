@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-start gap-3">
+  <div :class="['flex items-start gap-3', disabled && 'opacity-60']" :aria-disabled="disabled || undefined">
     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
       <AppIcon :name="icon" class="h-[18px] w-[18px]" />
     </span>
@@ -19,5 +19,6 @@ defineProps({
   label: { type: String, required: true },
   value: { type: [String, Number], default: '' },
   hint: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
 })
 </script>

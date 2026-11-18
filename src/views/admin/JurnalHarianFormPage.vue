@@ -22,10 +22,15 @@
               <div>
                 <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Siswa</label>
                 <input v-if="isEdit" :value="siswaLabel" disabled :class="[inputCls, 'bg-slate-50']" />
-                <select v-else v-model="form.siswa_id" :class="inputCls">
-                  <option value="">Pilih siswa</option>
-                  <option v-for="s in siswaOptions" :key="s.id" :value="String(s.id)">{{ s.nama }} · {{ s.nis }}</option>
-                </select>
+                <SelectDropdown
+                  v-else
+                  v-model="form.siswa_id"
+                  size="lg"
+                  searchable
+                  placeholder="Pilih siswa"
+                  :error="!!errors.siswa_id"
+                  :options="[{ value: '', label: 'Pilih siswa' }, ...siswaOptions.map((s) => ({ value: String(s.id), label: `${s.nama} · ${s.nis}` }))]"
+                />
                 <p v-if="errors.siswa_id" class="mt-1 text-xs text-red-600">{{ errors.siswa_id }}</p>
               </div>
 
@@ -38,13 +43,13 @@
 
             <div>
               <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Kompetensi</label>
-              <div class="relative">
-                <select v-model="form.kompetensi_id" :class="[inputCls, 'appearance-none pr-10']">
-                  <option value="">Pilih kompetensi</option>
-                  <option v-for="k in kompetensiOptions" :key="k.id" :value="String(k.id)">{{ k.nama }}</option>
-                </select>
-                <AppIcon name="chevron-down" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              </div>
+              <SelectDropdown
+                v-model="form.kompetensi_id"
+                size="lg"
+                placeholder="Pilih kompetensi"
+                :error="!!errors.kompetensi_id"
+                :options="[{ value: '', label: 'Pilih kompetensi' }, ...kompetensiOptions.map((k) => ({ value: String(k.id), label: k.nama }))]"
+              />
               <p v-if="errors.kompetensi_id" class="mt-1 text-xs text-red-600">{{ errors.kompetensi_id }}</p>
             </div>
 
@@ -104,6 +109,7 @@ import InfoItem from '../../components/InfoItem.vue'
 import InfoAlert from '../../components/InfoAlert.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
+import SelectDropdown from '../../components/SelectDropdown.vue'
 
 const props = defineProps({ id: { type: [String, Number], default: null } })
 const route = useRoute()
@@ -135,7 +141,6 @@ async function submit() {
   if (!form.kompetensi_id) errors.kompetensi_id = 'Kompetensi wajib dipilih.'
   if (Object.keys(errors).length) return
 
-  // TODO: sambungkan ke API begitu endpoint jurnal tersedia di BE (belum ada di routes/api.php).
   toast.warning('Simpan jurnal belum tersedia: endpoint jurnal belum ada di backend.')
 }
 </script>

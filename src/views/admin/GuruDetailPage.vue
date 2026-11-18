@@ -21,7 +21,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="py-16 text-center text-sm text-slate-400">Memuat data guru…</p>
+    <PageSkeleton v-if="loading" />
     <div v-else-if="error" class="flex flex-col items-center gap-3 py-16 text-center">
       <p class="text-sm text-red-600">{{ error }}</p>
       <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">
@@ -53,9 +53,10 @@
           </span>
         </div>
         <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-6 py-5 md:grid-cols-3">
-          <InfoItem icon="mail" label="Email" :value="guru.user?.email" />
-          <InfoItem icon="building" label="Jurusan" :value="prodi" />
+          <InfoItem icon="smartphone" label="Nomor Telepon" :value="guru.telp" />
+          <InfoItem icon="building" label="Program Studi" :value="prodi" />
           <InfoItem icon="key-round" label="Akun" :value="guru.user?.username" />
+          <InfoItem v-if="guru.alamat" class="md:col-span-3" icon="pin" label="Alamat" :value="guru.alamat" />
         </div>
       </section>
 
@@ -85,7 +86,7 @@
         <p v-if="!rows.length" class="px-6 py-12 text-center text-sm text-slate-400">Belum ada siswa yang dialokasikan.</p>
 
         <div v-else class="divide-y divide-slate-100">
-          <div v-for="r in rows" :key="r.id" class="flex items-center gap-4 px-6 py-3">
+          <div v-for="r in pagedRows" :key="r.id" class="flex items-center gap-4 px-6 py-3">
             <div class="flex min-w-0 flex-1 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
@@ -98,14 +99,25 @@
               </div>
             </div>
             <span class="w-[220px] truncate text-xs text-slate-600">{{ r.perusahaan }}</span>
-            <span class="w-[170px] truncate text-xs text-slate-600">{{ r.gelombang }}</span>
+            <div class="flex w-[170px] flex-col gap-1.5">
+              <template v-if="r.persen !== null">
+                <span class="text-xs font-medium leading-[18px] text-slate-900">{{ r.persen }}% hadir</span>
+                <div class="h-1.5 w-[120px] overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    :class="['h-full rounded-full', r.persen >= 80 ? 'bg-emerald-700' : 'bg-red-700']"
+                    :style="{ width: `${r.persen}%` }"
+                  />
+                </div>
+              </template>
+              <span v-else class="text-xs text-slate-400">—</span>
+            </div>
             <div class="w-[130px]">
               <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', r.box]">
                 <span :class="['h-1.5 w-1.5 rounded-full', r.dot]" />
                 {{ r.statusLabel }}
               </span>
             </div>
-            <div class="flex w-[60px] justify-end">
+            <div class="flex w-[96px] justify-end gap-2">
               <router-link
                 :to="`/admin/master-data/siswa/${r.siswaId}`"
                 class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -114,20 +126,44 @@
               >
                 <AppIcon name="eye" class="h-5 w-5" />
               </router-link>
+              <button
+                v-if="r.canLepas"
+                type="button"
+                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600"
+                aria-label="Lepas dari guru ini"
+                title="Lepas dari guru ini"
+                @click="toLepas = r"
+              >
+                <AppIcon name="user-minus" class="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
 
-        <div class="border-t border-slate-100 px-6 py-4 text-xs text-slate-600">
-          Menampilkan {{ rows.length }} penempatan
-        </div>
+        <DataPagination
+          v-model:page="page"
+          :last-page="lastPage"
+          :total="rows.length"
+          :from="from"
+          :to="to"
+          item-label="penempatan"
+        />
       </section>
     </div>
+
+    <ConfirmDialog
+      :show="!!toLepas"
+      title="Lepas siswa dari guru ini?"
+      :message="`${toLepas?.nama ?? 'Siswa'} tidak lagi dibimbing guru ini. Penempatan PKL-nya tetap ada dan guru bisa diatur ulang di menu Lokasi & Penempatan.`"
+      :loading="lepasing"
+      @cancel="toLepas = null"
+      @confirm="confirmLepas"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import api, { getErrorMessage } from '../../services/api'
 import { fetchAllPages, LOKASI_STATUS } from '../../utils/siswa'
 import PageHeader from '../../components/PageHeader.vue'
@@ -135,16 +171,22 @@ import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
+import DataPagination from '../../components/DataPagination.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import { useToastStore } from '../../stores/toast'
 
 const props = defineProps({ id: { type: String, required: true } })
 const backTo = '/admin/master-data/guru'
+const PAGE_SIZE = 4
+const toast = useToastStore()
 
 const columns = [
   { label: 'Siswa', width: 'flex-1', align: '' },
   { label: 'Tempat PKL', width: 'w-[220px]', align: '' },
-  { label: 'Gelombang', width: 'w-[170px]', align: '' },
+  { label: 'Kehadiran', width: 'w-[170px]', align: '' },
   { label: 'Status', width: 'w-[130px]', align: '' },
-  { label: 'Aksi', width: 'w-[60px]', align: 'text-right' },
+  { label: 'Aksi', width: 'w-[96px]', align: 'text-right' },
 ]
 
 const STYLE = {
@@ -159,8 +201,20 @@ const error = ref('')
 const guru = ref({})
 const lokasi = ref([])
 const siswaMap = ref(new Map())
+const jurusanById = ref(new Map())
+const rekap = ref(new Map())
+const page = ref(1)
+const toLepas = ref(null)
+const lepasing = ref(false)
 
 const aktif = computed(() => lokasi.value.filter((l) => l.status === 'active'))
+
+function persenOf(siswaId) {
+  const r = rekap.value.get(siswaId)
+  if (!r) return null
+  const efektif = r.total - r.libur
+  return efektif > 0 ? Math.round((r.hadir / efektif) * 100) : null
+}
 
 const rows = computed(() =>
   [...lokasi.value]
@@ -176,7 +230,8 @@ const rows = computed(() =>
         nis: l.siswa?.nis ?? '—',
         kelas: s?.kelas ?? '',
         perusahaan: l.perusahaan?.nama ?? '—',
-        gelombang: l.gelombang ? `${l.gelombang.nama} · ${l.gelombang.tahun_ajaran}` : '—',
+        persen: persenOf(l.siswa?.id),
+        canLepas: l.status === 'active' || l.status === 'pending',
         statusLabel: LOKASI_STATUS[l.status] ?? l.status,
         box,
         dot,
@@ -184,17 +239,25 @@ const rows = computed(() =>
     })
 )
 
-const prodi = computed(() => {
-  const count = {}
-  aktif.value.forEach((l) => {
-    const p = siswaMap.value.get(l.siswa?.id)?.jurusan?.nama
-    if (p) count[p] = (count[p] || 0) + 1
-  })
-  return Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] ?? ''
+const lastPage = computed(() => Math.max(1, Math.ceil(rows.value.length / PAGE_SIZE)))
+const pagedRows = computed(() => rows.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
+const from = computed(() => (rows.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
+const to = computed(() => Math.min(page.value * PAGE_SIZE, rows.value.length))
+
+watch(lastPage, (n) => {
+  if (page.value > n) page.value = n
 })
 
+const prodi = computed(() => guru.value.jurusan?.nama ?? jurusanById.value.get(guru.value.jurusan_id) ?? '')
+
 const stats = computed(() => [
-  { label: 'Siswa Bimbingan', icon: 'users', tone: 'blue', value: aktif.value.length, hint: 'siswa aktif PKL' },
+  {
+    label: 'Siswa Bimbingan',
+    icon: 'users',
+    tone: 'blue',
+    value: aktif.value.length,
+    hint: guru.value.kuota_bimbingan != null ? `kuota ${guru.value.kuota_bimbingan} siswa` : 'siswa aktif PKL',
+  },
   {
     label: 'Perusahaan',
     icon: 'building',
@@ -202,13 +265,19 @@ const stats = computed(() => [
     value: new Set(aktif.value.map((l) => l.perusahaan?.id).filter(Boolean)).size,
     hint: 'lokasi PKL dipantau',
   },
-  { label: 'Total Penempatan', icon: 'clipboard-list', tone: 'green', value: lokasi.value.length, hint: 'seluruh gelombang' },
   {
-    label: 'Selesai',
-    icon: 'award',
+    label: 'Jurnal Siswa Bimbingan',
+    icon: 'book-check',
+    tone: 'green',
+    value: null,
+    emptyHint: 'PAD 2',
+  },
+  {
+    label: 'Belum Mengisi Hari Ini',
+    icon: 'hourglass',
     tone: 'amber',
-    value: lokasi.value.filter((l) => l.status === 'completed').length,
-    hint: 'penempatan selesai',
+    value: null,
+    emptyHint: 'PAD 2',
   },
 ])
 
@@ -216,18 +285,41 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [g, l, s] = await Promise.all([
+    const [g, l, s, j, r] = await Promise.all([
       api.get(`/api/guru/${props.id}`),
       fetchAllPages('/api/lokasi-pkl', { guru_id: props.id }),
       fetchAllPages('/api/siswa'),
+      fetchAllPages('/api/jurusan'),
+      api.get('/api/absensi/rekap', { skipErrorToast: true }).catch(() => null),
     ])
+    rekap.value = new Map((r?.data?.data ?? []).filter((x) => x.siswa?.id).map((x) => [x.siswa.id, x]))
     guru.value = g.data.data
     lokasi.value = l
     siswaMap.value = new Map(s.map((x) => [x.id, x]))
+    jurusanById.value = new Map(j.map((x) => [x.id, x.nama]))
   } catch (e) {
     error.value = getErrorMessage(e, 'Gagal memuat data guru.')
   } finally {
     loading.value = false
+  }
+}
+
+async function confirmLepas() {
+  const target = toLepas.value
+  if (!target || lepasing.value) return
+  lepasing.value = true
+  try {
+    await api.put(`/api/lokasi-pkl/${target.id}`, { guru_id: null })
+    toast.show(`${target.nama} tidak lagi dibimbing guru ini.`)
+    lokasi.value = lokasi.value.filter((l) => l.id !== target.id)
+  } catch (err) {
+    const status = err.response?.status
+    if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {
+      toast.show(getErrorMessage(err), 'error')
+    }
+  } finally {
+    lepasing.value = false
+    toLepas.value = null
   }
 }
 

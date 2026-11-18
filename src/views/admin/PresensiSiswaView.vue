@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Monitoring' }, { label: 'Presensi Siswa' }]"
       title="Presensi Siswa"
@@ -11,7 +11,7 @@
         class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold leading-5 text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         @click="exportExcel"
       >
-        <AppIcon name="download" class="h-5 w-5" />
+        <AppIcon name="file-text" class="h-5 w-5" />
         {{ exporting ? 'Mengekspor…' : 'Ekspor Excel' }}
       </button>
       <router-link
@@ -24,14 +24,14 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <CardHeader title="Presensi Hari Ini" :description="`${tanggalPanjang} · ${applied.jurusan || 'semua program studi'}.`" />
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
           <button
             v-for="t in tabs"
             :key="t.key"
@@ -50,8 +50,8 @@
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center gap-3 px-6 py-4" @submit.prevent="applyFilters">
-          <label class="flex h-10 min-w-[240px] flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200">
+        <form class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6" @submit.prevent="applyFilters">
+          <label class="flex h-10 w-full min-w-0 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200 sm:min-w-[240px] sm:flex-1">
             <AppIcon name="search" class="h-5 w-5 shrink-0 text-slate-400" />
             <input
               ref="searchInput"
@@ -60,64 +60,45 @@
               placeholder="Cari nama / NIS siswa…"
               class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
             />
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">Ctrl K</span>
+            <span class="hidden rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500 md:block">Ctrl K</span>
           </label>
 
-          <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+          <label class="flex h-10 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200 sm:w-[200px]">
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
             <DatePicker v-model="draft.tanggal" bare class="min-w-0 flex-1" />
           </label>
 
           <SelectDropdown
             v-model="draft.jurusan"
-            class="w-[220px]"
+            class="w-full sm:w-[220px]"
             icon="building"
             placeholder="Semua Program Studi"
             :options="jurusanItems"
           />
 
-          <button type="submit" class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100">
+          <button type="submit" class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100 sm:w-auto">
             <AppIcon name="filter" class="h-5 w-5" />
             Terapkan
           </button>
         </form>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
-          <span
-            v-for="col in columns"
-            :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
-          >
-            {{ col.label }}
-          </span>
-        </div>
-
-        <div v-if="loading" class="divide-y divide-slate-100" role="status" aria-busy="true" aria-label="Memuat data presensi">
-          <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-6 py-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
-              <span class="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200"></span>
-              <div class="flex min-w-0 flex-1 flex-col gap-2">
-                <span class="h-3 w-36 max-w-full animate-pulse rounded bg-slate-200"></span>
-                <span class="h-2.5 w-24 max-w-full animate-pulse rounded bg-slate-100"></span>
-              </div>
-            </div>
-            <span class="h-3 w-[190px] animate-pulse rounded bg-slate-200"></span>
-            <span class="h-3 w-[96px] animate-pulse rounded bg-slate-200"></span>
-            <span class="h-6 w-[128px] animate-pulse rounded-full bg-slate-100"></span>
-            <div class="flex w-[90px] justify-end gap-2">
-              <span v-for="b in 2" :key="b" class="h-10 w-10 animate-pulse rounded-xl bg-slate-100"></span>
-            </div>
-          </div>
-        </div>
-        <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <div v-if="error" class="flex flex-col items-center gap-3 border-t border-slate-100 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
         </div>
-        <p v-else-if="!pageRows.length" class="px-6 py-12 text-center text-sm text-slate-400">Tidak ada data presensi.</p>
 
-        <div v-else class="divide-y divide-slate-100">
-          <div v-for="row in pageRows" :key="row.siswaId" class="flex items-center gap-4 px-6 py-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+        <AdminTable
+          v-else
+          v-model:page="page"
+          :columns="columns"
+          :rows="filtered"
+          :per-page="PAGE_SIZE"
+          :loading="loading"
+          entity="siswa"
+          actions-width="w-[122px]"
+        >
+          <template #cell-nama="{ row }">
+            <div class="flex min-w-0 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
               </span>
@@ -126,49 +107,44 @@
                 <p class="truncate text-[11px] leading-[14px] text-slate-500">{{ row.kelas || row.nis }}</p>
               </div>
             </div>
+          </template>
 
-            <span class="w-[190px] truncate text-xs text-slate-600">{{ row.perusahaan }}</span>
-            <span class="w-[96px] text-xs text-slate-600">{{ row.jam }}</span>
+          <template #cell-status="{ row }">
+            <span :class="['inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PRESENSI_STATUS[row.status].box]">
+              <span :class="['h-1.5 w-1.5 rounded-full', PRESENSI_STATUS[row.status].dot]" />
+              {{ PRESENSI_STATUS[row.status].label }}
+            </span>
+          </template>
 
-            <div class="w-[128px]">
-              <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PRESENSI_STATUS[row.status].box]">
-                <span :class="['h-1.5 w-1.5 rounded-full', PRESENSI_STATUS[row.status].dot]" />
-                {{ PRESENSI_STATUS[row.status].label }}
-              </span>
-            </div>
-
-            <div class="flex w-[90px] justify-end gap-2">
-              <router-link
-                :to="detailLink(row)"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Lihat presensi"
-                title="Lihat detail presensi"
-              >
-                <AppIcon name="eye" class="h-5 w-5" />
-              </router-link>
-              <router-link
-                v-if="row.absensiId"
-                :to="editLink(row)"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Edit presensi"
-                title="Edit presensi"
-              >
-                <AppIcon name="pencil" class="h-5 w-5" />
-              </router-link>
-              <router-link
-                v-else
-                :to="tambahLink(row)"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Tambah presensi"
-                title="Tambah presensi manual"
-              >
-                <AppIcon name="pencil" class="h-5 w-5" />
-              </router-link>
-            </div>
-          </div>
-        </div>
-
-        <DataPagination v-if="!loading" v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="siswa" />
+          <template #actions="{ row }">
+            <router-link
+              :to="detailLink(row)"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Lihat presensi"
+              title="Lihat detail presensi"
+            >
+              <AppIcon name="eye" class="h-5 w-5" />
+            </router-link>
+            <router-link
+              v-if="row.absensiId"
+              :to="editLink(row)"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Edit presensi"
+              title="Edit presensi"
+            >
+              <AppIcon name="pencil" class="h-5 w-5" />
+            </router-link>
+            <router-link
+              v-else
+              :to="tambahLink(row)"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Tambah presensi"
+              title="Tambah presensi manual"
+            >
+              <AppIcon name="pencil" class="h-5 w-5" />
+            </router-link>
+          </template>
+        </AdminTable>
       </section>
     </div>
   </div>
@@ -185,18 +161,18 @@ import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
-import DataPagination from '../../components/DataPagination.vue'
+import AdminTable from '../../components/AdminTable.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
 
 const PAGE_SIZE = 6
 
 const columns = [
-  { label: 'Siswa', width: 'flex-1', align: '' },
-  { label: 'Perusahaan', width: 'w-[190px]', align: '' },
-  { label: 'Waktu Kirim', width: 'w-[96px]', align: '' },
-  { label: 'Status', width: 'w-[128px]', align: '' },
-  { label: 'Aksi', width: 'w-[90px]', align: 'text-right' },
+  { key: 'nama', label: 'Siswa' },
+  { key: 'perusahaan', label: 'Perusahaan', width: 'w-[206px]', cellClass: 'sm:truncate' },
+  { key: 'jam', label: 'Waktu Kirim', width: 'w-[112px]' },
+  { key: 'jamShift', label: 'Jam Shift', width: 'w-[120px]', cellClass: 'whitespace-nowrap' },
+  { key: 'status', label: 'Status', width: 'w-[144px]' },
 ]
 
 const rows = ref([])
@@ -209,7 +185,6 @@ const waktuAbsen = ref(null)
 const exporting = ref(false)
 const toast = useToastStore()
 
-// Jam buka presensi diatur di Pengaturan, jadi diambil dari BE, bukan ditulis tetap di sini
 const subtitle = computed(() => {
   const jam = waktuAbsen.value ? `dibuka ${waktuAbsen.value.mulai} – ${waktuAbsen.value.selesai} WIB, ` : ''
   return `Presensi ${jam}satu kali per hari. Siswa mengisi jam shift sendiri.`
@@ -228,13 +203,16 @@ useListState('presensi-siswa', ['/admin/presensi-siswa/'], {
   },
 })
 
+function jamShiftOf(a) {
+  return a?.jam_shift_mulai && a?.jam_shift_selesai ? `${jamOnly(a.jam_shift_mulai)}–${jamOnly(a.jam_shift_selesai)}` : '—'
+}
+
 async function loadWaktuAbsen() {
   try {
     const res = await api.get('/api/waktu-absen')
     const row = res.data?.data?.[0]
     if (row?.mulai && row?.selesai) waktuAbsen.value = { mulai: jamOnly(row.mulai), selesai: jamOnly(row.selesai) }
   } catch {
-    // jam buka hanya keterangan tambahan; daftar tetap tampil tanpanya
   }
 }
 
@@ -257,6 +235,7 @@ async function load() {
         const s = siswaMap.get(l.siswa.id)
         const a = absMap.get(l.siswa.id)
         return {
+          id: l.siswa.id,
           siswaId: l.siswa.id,
           absensiId: a?.id ?? null,
           nama: l.siswa.nama,
@@ -266,6 +245,7 @@ async function load() {
           jurusanId: s?.jurusan?.id ?? null,
           perusahaan: l.perusahaan?.nama ?? '—',
           jam: a ? jamOnly(a.jam_masuk) : '—',
+          jamShift: jamShiftOf(a),
           status: a?.status ?? 'belum',
         }
       })
@@ -314,21 +294,16 @@ const tabs = computed(() => [
 const stats = computed(() => {
   const total = base.value.length
   const hadir = count('hadir')
-  // Saat memuat, nilai dikosongkan agar StatCard menampilkan bayangan, bukan angka 0 yang menyesatkan
   const v = (n) => (loading.value ? null : n)
   return [
     { label: 'Hadir', value: v(hadir), hint: total ? `${Math.round((hadir / total) * 100)}% siswa aktif` : '', icon: 'user-check', tone: 'green' },
     { label: 'Izin', value: v(count('izin')), hint: 'siswa hari ini', icon: 'file', tone: 'blue' },
     { label: 'Sakit', value: v(count('sakit')), hint: 'siswa hari ini', icon: 'alert', tone: 'amber' },
-    { label: 'Belum Presensi', value: v(count('belum')), hint: 'siswa belum mengirim presensi', icon: 'circle-x', tone: 'red' },
+    { label: 'Belum Presensi', value: v(count('belum')), hint: waktuAbsen.value ? `presensi ditutup ${waktuAbsen.value.selesai} WIB` : '', icon: 'circle-x', tone: 'red' },
   ]
 })
 
 const filtered = computed(() => (tab.value === 'semua' ? base.value : base.value.filter((r) => r.status === tab.value)))
-const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
-const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
 
 const tanggalPanjang = computed(() => {
   const d = parseDate(applied.tanggal)
@@ -340,11 +315,9 @@ const detailLink = (r) =>
     ? `/admin/presensi-siswa/${r.absensiId}`
     : `/admin/presensi-siswa/belum/${r.siswaId}?tanggal=${applied.tanggal}`
 
-// Edit hanya untuk baris yang sudah punya presensi (absensiId); yang belum punya diarahkan ke form tambah manual.
 const editLink = (r) => `/admin/presensi-siswa/${r.absensiId}/edit`
 const tambahLink = (r) => `/admin/presensi-siswa/tambah?siswa_id=${r.siswaId}&tanggal=${applied.tanggal}`
 
-// Ekspor presensi ke Excel (GET /api/absensi/export) dengan filter yang sedang diterapkan
 async function exportExcel() {
   if (tab.value === 'belum') {
     toast.show('Siswa yang belum presensi tidak ada di data ekspor.', 'error')

@@ -32,21 +32,21 @@
         </div>
 
         <p v-if="loadError" class="mt-5 rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
-        <p v-else-if="loading" class="mt-5 text-sm text-slate-500">Memuat data...</p>
+        <SkeletonRows v-else-if="loading" class="mt-5" :rows="3" :cols="0" :avatar="false" :action="false" />
 
         <div v-else class="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
           <div v-for="f in cfg.fields" :key="f.key" :class="f.select || f.textarea ? 'md:col-span-2' : ''">
             <label :for="f.key" class="mb-1.5 block text-xs font-semibold text-slate-900">{{ f.label }}</label>
 
-            <select
+            <SelectDropdown
               v-if="f.select"
               :id="f.key"
               v-model="form[f.key]"
-              :class="[inputBase, fieldErrors[f.key] ? 'border-red-500' : 'border-slate-200']"
-            >
-              <option value="" disabled>Pilih program studi</option>
-              <option v-for="j in jurusanList" :key="j.id" :value="j.id">{{ j.nama }}</option>
-            </select>
+              size="lg"
+              placeholder="Pilih program studi"
+              :error="!!fieldErrors[f.key]"
+              :options="jurusanList.map((j) => ({ value: j.id, label: j.nama }))"
+            />
 
             <textarea
               v-else-if="f.textarea"
@@ -108,6 +108,8 @@ import { useRouter } from 'vue-router'
 import PageHeader from '../../components/PageHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
+import SelectDropdown from '../../components/SelectDropdown.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useMasterResource, fetchAll } from '../../composables/useMasterResource'

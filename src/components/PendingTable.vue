@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div class="flex flex-wrap items-center gap-3 px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
       <label
-        class="flex h-11 min-w-[240px] flex-1 items-center gap-3 rounded-xl bg-slate-100 px-4 opacity-70"
+        class="flex h-11 w-full min-w-0 items-center gap-3 rounded-xl bg-slate-100 px-4 opacity-70 sm:min-w-[240px] sm:flex-1"
         title="Pencarian aktif setelah data dari BE tersedia"
       >
         <AppIcon name="search" class="h-4 w-4 shrink-0 text-slate-400" />
@@ -17,7 +17,7 @@
       <span
         v-for="f in filters"
         :key="f"
-        class="flex h-11 w-[190px] cursor-not-allowed items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 opacity-60"
+        class="flex h-11 w-full cursor-not-allowed items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 opacity-60 sm:w-[190px]"
         title="Menunggu data dari BE"
       >
         {{ f }}
@@ -34,7 +34,7 @@
       </button>
     </div>
 
-    <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
+    <div class="hidden items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5 sm:flex">
       <span
         v-for="(col, i) in columns"
         :key="col"

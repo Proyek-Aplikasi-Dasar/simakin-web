@@ -1,12 +1,12 @@
 <template>
   <div class="flex flex-col gap-2">
     <p :id="`${id}-label`" class="text-xs font-semibold leading-4 text-slate-600">{{ label }}</p>
-    <div role="radiogroup" :aria-labelledby="`${id}-label`" class="flex flex-wrap gap-6">
+    <div role="radiogroup" :aria-labelledby="`${id}-label`" class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-6">
       <label
         v-for="o in options"
         :key="o.value"
         :class="[
-          'flex items-center gap-2.5 rounded-xl px-4 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-300',
+          'flex w-full items-center gap-2.5 rounded-xl px-4 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-300 sm:w-auto',
           modelValue === o.value
             ? 'border-[1.5px] border-blue-600 bg-blue-50'
             : 'border border-slate-200 bg-white',

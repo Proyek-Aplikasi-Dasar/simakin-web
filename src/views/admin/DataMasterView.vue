@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Data Master' }, { label: activeTab.label }]"
       title="Data Master"
@@ -34,7 +34,7 @@
     </PageHeader>
 
     <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div class="flex gap-8 overflow-x-auto border-b border-slate-200 px-6">
+      <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:gap-8 sm:px-6">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -114,7 +114,7 @@
         :resource="sikap"
       />
 
-      <div v-else class="px-6 py-16 text-center text-sm text-slate-500">
+      <div v-else class="px-4 py-16 text-center text-sm text-slate-500 sm:px-6">
         Data {{ activeTab.label }} belum tersedia. Menunggu endpoint dari BE.
       </div>
     </div>

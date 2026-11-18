@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
-import { clearRequestCache } from '../utils/requestCache'
+import { clearRequestCache, dropPendingRequests } from '../utils/requestCache'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
@@ -16,6 +16,7 @@ export async function getCsrfCookie(config) {
 }
 
 export function getErrorMessage(error, fallback = 'Terjadi kesalahan.') {
+  if (axios.isCancel(error)) return ''
   const data = error?.response?.data
   if (data?.errors) {
     const first = Object.values(data.errors)[0]
@@ -24,9 +25,19 @@ export function getErrorMessage(error, fallback = 'Terjadi kesalahan.') {
   return data?.message || fallback
 }
 
+let pageController = new AbortController()
+
+export function abortPendingRequests() {
+  pageController.abort()
+  pageController = new AbortController()
+  dropPendingRequests()
+}
+
 // Request tulis (simpan/ubah/hapus/login/logout) membuat cache data daftar tidak valid lagi
 api.interceptors.request.use((config) => {
-  if ((config.method ?? 'get').toLowerCase() !== 'get') clearRequestCache()
+  const method = (config.method ?? 'get').toLowerCase()
+  if (method !== 'get') clearRequestCache()
+  else if (!config.signal && !config.persist) config.signal = pageController.signal
   return config
 })
 

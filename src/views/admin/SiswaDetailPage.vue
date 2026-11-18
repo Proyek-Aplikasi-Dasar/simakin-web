@@ -21,7 +21,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="py-16 text-center text-sm text-slate-400">Memuat data siswa…</p>
+    <PageSkeleton v-if="loading" />
     <div v-else-if="error" class="flex flex-col items-center gap-3 py-16 text-center">
       <p class="text-sm text-red-600">{{ error }}</p>
       <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">
@@ -84,7 +84,8 @@
           <div class="px-6 py-6">
             <div v-if="tab === 'pribadi'" class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
               <InfoItem icon="user" label="Nama Lengkap" :value="siswa.user?.name" />
-              <InfoItem icon="key-round" label="NIS" :value="siswa.nis" />
+              <InfoItem icon="key-round" label="NIS / NISN" :value="nisNisn" />
+              <InfoItem icon="calendar" label="Tempat, Tanggal Lahir" :value="ttl" />
               <InfoItem icon="user" label="Jenis Kelamin" :value="jenisKelamin" />
               <InfoItem icon="mail" label="Email" :value="siswa.user?.email" />
               <InfoItem icon="smartphone" label="Nomor HP" :value="siswa.telp" />
@@ -92,7 +93,7 @@
               <InfoItem
                 icon="shield"
                 label="Status Data"
-                :value="siswa.profil_terkonfirmasi ? 'Terkonfirmasi' : 'Belum dikonfirmasi'"
+                :value="siswa.profil_terkonfirmasi ? 'Lengkap' : 'Belum dikonfirmasi'"
                 :hint="siswa.profil_terkonfirmasi ? `Dikonfirmasi ${formatDate(siswa.profil_confirmed_at)}` : 'Siswa belum mengonfirmasi profil'"
               />
             </div>
@@ -100,39 +101,37 @@
             <div v-else-if="tab === 'ortu'" class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
               <InfoItem icon="user" label="Nama Orang Tua / Wali" :value="siswa.nama_ortu" />
               <InfoItem icon="smartphone" label="Nomor HP" :value="siswa.telp_ortu" />
-              <div class="md:col-span-2">
-                <InfoItem icon="home" label="Alamat" :value="siswa.alamat_ortu" />
-              </div>
+              <InfoItem icon="home" label="Alamat" :value="siswa.alamat_ortu" hint="Opsional" />
+              <InfoItem icon="shield" label="Status Data" :value="ortuTerisi ? 'Terisi' : 'Belum diisi'" hint="Diisi siswa dari aplikasi" />
             </div>
 
             <div v-else-if="tab === 'akademik'" class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
+              <InfoItem icon="key-round" label="NIS / NISN" :value="nisNisn" />
               <InfoItem icon="cap" label="Kelas" :value="siswa.kelas" />
-              <InfoItem icon="briefcase" label="Program Studi" :value="siswa.jurusan?.nama" :hint="siswa.jurusan?.kode" />
-              <InfoItem icon="calendar" label="Gelombang" :value="siswa.gelombang?.nama" />
+              <InfoItem icon="briefcase" label="Program Studi" :value="siswa.jurusan?.nama" />
               <InfoItem icon="calendar" label="Tahun Ajaran" :value="siswa.gelombang?.tahun_ajaran" />
+              <InfoItem icon="calendar" label="Gelombang PKL" :value="siswa.gelombang?.nama" :hint="gelombangHint" />
+              <InfoItem icon="clipboard-check" label="Status PKL" :value="statusPkl" :hint="mingguHint" />
             </div>
 
             <div v-else>
-              <p v-if="!lokasiList.length" class="py-6 text-center text-sm text-slate-400">Siswa belum memiliki penempatan PKL.</p>
-              <div v-else class="flex flex-col gap-4">
-                <div
-                  v-for="l in lokasiList"
-                  :key="l.id"
-                  class="grid grid-cols-1 gap-x-8 gap-y-5 rounded-xl border border-slate-100 p-4 md:grid-cols-2"
-                >
-                  <InfoItem icon="building" label="Perusahaan" :value="l.perusahaan?.nama" />
-                  <InfoItem icon="user-check" label="Pembimbing" :value="l.guru?.nama" />
-                  <InfoItem icon="calendar" label="Gelombang" :value="l.gelombang?.nama" :hint="l.gelombang?.tahun_ajaran" />
-                  <InfoItem icon="clipboard-check" label="Status" :value="LOKASI_STATUS[l.status] ?? l.status" :hint="l.catatan" />
-                </div>
+              <p v-if="!lokasi" class="py-6 text-center text-sm text-slate-400">Siswa belum memiliki penempatan PKL.</p>
+              <div v-else class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
+                <InfoItem icon="building" label="Tempat PKL" :value="lokasi.perusahaan?.nama" />
+                <InfoItem icon="pin" label="Alamat Penempatan" :value="perusahaan?.alamat" :hint="radiusHint" />
+                <InfoItem icon="user-check" label="Guru Pembimbing" :value="lokasi.guru?.nama" />
+                <InfoItem icon="user" label="Pembimbing Industri" :value="perusahaan?.pembimbing_industri" />
+                <InfoItem icon="calendar" label="Periode PKL" :value="periode" :hint="periodeHint" />
+                <InfoItem icon="hourglass" label="Sisa Hari PKL" :value="sisaHariText" :hint="sisaHint" />
               </div>
             </div>
           </div>
         </section>
 
+        <div class="flex flex-col gap-6">
         <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <CardHeader title="Aktivitas Terbaru" description="Dari aplikasi siswa." />
-          <p v-if="absLoading" class="px-6 py-10 text-center text-sm text-slate-400">Memuat aktivitas…</p>
+          <SkeletonRows v-if="absLoading" :rows="4" :cols="2" :avatar="false" :action="false" />
           <p v-else-if="!aktivitas.length" class="px-6 py-10 text-center text-sm text-slate-400">Belum ada aktivitas presensi.</p>
           <ul v-else class="flex flex-col gap-5 px-6 py-6">
             <li v-for="a in aktivitas" :key="a.id" class="flex items-start gap-3">
@@ -142,20 +141,46 @@
               <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span class="text-[10px] font-semibold uppercase leading-4 tracking-[0.06em] text-emerald-700">Presensi</span>
                 <span class="text-xs font-semibold leading-[18px] text-slate-900">
-                  Presensi {{ ABSEN_STATUS[a.status]?.label ?? a.status }}<template v-if="a.jam_masuk"> {{ jamOnly(a.jam_masuk) }}</template>
+                  Presensi {{ ABSEN_STATUS[a.status]?.label ?? a.status }}{{ a.jam_masuk ? ' ' + jamOnly(a.jam_masuk) : '' }}
                 </span>
                 <span class="truncate text-[11px] leading-[14px] text-slate-500">{{ a.keterangan || formatDate(a.tanggal) }}</span>
               </div>
               <span class="shrink-0 text-[11px] text-slate-500">{{ a.tanggal === todayIso ? 'Hari ini' : formatShort(a.tanggal) }}</span>
             </li>
           </ul>
-          <div class="border-t border-slate-100 px-6 py-4">
-            <router-link :to="`${backTo}/${id}/presensi`" class="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700">
-              Lihat riwayat presensi
-              <AppIcon name="arrow-right" class="h-4 w-4" />
+        </section>
+
+        <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
+          <CardHeader title="Akses Cepat" />
+          <div class="flex flex-col gap-3 px-6 pb-6">
+            <router-link
+              :to="`${backTo}/${id}/presensi`"
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              <AppIcon name="calendar-check" class="h-4 w-4" />
+              Riwayat Presensi
             </router-link>
+            <button
+              type="button"
+              disabled
+              title="Belum tersedia"
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <AppIcon name="file" class="h-4 w-4" />
+              Riwayat Jurnal
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Belum tersedia"
+              class="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <AppIcon name="award" class="h-4 w-4" />
+              Riwayat Penilaian
+            </button>
           </div>
         </section>
+        </div>
       </div>
     </div>
   </div>
@@ -183,6 +208,8 @@ import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import InfoItem from '../../components/InfoItem.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 
 const props = defineProps({
   id: { type: String, required: true },
@@ -227,6 +254,33 @@ const sisaHari = computed(() => {
   return Math.max(0, Math.ceil((end - start) / 86400000))
 })
 
+const nisNisn = computed(() => [siswa.value.nis, siswa.value.nisn].filter(Boolean).join(' / '))
+const ttl = computed(() => {
+  const tgl = siswa.value.tanggal_lahir ? formatDate(siswa.value.tanggal_lahir) : ''
+  return [siswa.value.tempat_lahir, tgl].filter(Boolean).join(', ')
+})
+const ortuTerisi = computed(() => !!(siswa.value.nama_ortu && siswa.value.telp_ortu))
+const statusPkl = computed(() => (pklStatus.value === 'aktif' ? 'Aktif PKL' : PKL_STATUS[pklStatus.value].label))
+const gelombangHint = computed(() =>
+  gelombang.value && gelombang.value.id === siswa.value.gelombang?.id
+    ? `${formatDate(gelombang.value.praktik_mulai)} – ${formatDate(gelombang.value.praktik_selesai)}`
+    : ''
+)
+const mingguHint = computed(() => {
+  const start = parseDate(gelombang.value?.praktik_mulai)
+  const end = parseDate(gelombang.value?.praktik_selesai)
+  if (pklStatus.value !== 'aktif' || !start || !end) return ''
+  const total = Math.max(1, Math.ceil(((end - start) / 86400000 + 1) / 7))
+  const now = Math.floor((Date.now() - start) / (7 * 86400000)) + 1
+  return `Minggu ke-${Math.min(Math.max(now, 1), total)} dari ${total}`
+})
+const radiusHint = computed(() =>
+  perusahaan.value?.radius_presensi ? `Radius presensi ${perusahaan.value.radius_presensi} meter` : ''
+)
+const periodeHint = computed(() => [gelombang.value?.nama, gelombang.value?.tahun_ajaran].filter(Boolean).join(' · '))
+const sisaHariText = computed(() => (sisaHari.value != null ? `${sisaHari.value} hari` : ''))
+const sisaHint = computed(() => (gelombang.value ? `Selesai ${formatDate(gelombang.value.praktik_selesai)}` : ''))
+
 const stats = computed(() => {
   const k = hitungKehadiran(absensi.value)
   return [
@@ -237,8 +291,8 @@ const stats = computed(() => {
       value: k.persen != null ? `${k.persen}%` : null,
       hint: absLoading.value ? 'memuat…' : `${k.hadir} dari ${k.efektif} hari`,
     },
-    { label: 'Jurnal Terkirim', icon: 'file', tone: 'blue', value: null, hint: '' },
-    { label: 'Nilai Rata-rata', icon: 'award', tone: 'blue', value: null, hint: '' },
+    { label: 'Jurnal Terkirim', icon: 'file', tone: 'blue', value: null, hint: '', emptyHint: 'Belum tersedia' },
+    { label: 'Nilai Rata-rata', icon: 'award', tone: 'blue', value: null, hint: '', emptyHint: 'Belum tersedia' },
     {
       label: 'Sisa Hari PKL',
       icon: 'hourglass',

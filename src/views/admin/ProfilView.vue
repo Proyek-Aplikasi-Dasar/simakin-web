@@ -15,19 +15,20 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <div class="relative h-[50px] overflow-hidden bg-blue-600">
-          <div class="absolute -right-12 -top-16 h-40 w-72 rounded-full bg-blue-700/70"></div>
+      <section class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white">
+        <div class="absolute inset-x-0 top-0 h-14 overflow-hidden bg-blue-600">
+          <div class="absolute -top-[90px] right-[60px] h-[180px] w-[180px] rounded-full bg-blue-700/60"></div>
+          <div class="absolute right-[-30px] top-2.5 h-[120px] w-[120px] rounded-full bg-blue-700/60"></div>
         </div>
-        <div class="flex items-end justify-between gap-4 px-6 pb-5">
-          <div class="flex items-end gap-5">
-            <span class="-mt-9 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
+        <div class="relative flex items-end gap-6 px-6 pb-5 pt-7">
+          <span class="flex shrink-0 rounded-full bg-white p-1">
+            <span class="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-9 w-9" />
             </span>
-            <div class="pb-1">
-              <h2 class="text-xl font-bold leading-7 tracking-[-0.02em] text-slate-900">{{ auth.user?.name ?? '—' }}</h2>
-              <p class="text-sm leading-5 text-slate-600">Administrator · SMK Negeri 1 Magelang</p>
-            </div>
+          </span>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ auth.user?.name ?? '—' }}</h2>
+            <p class="text-xs leading-[18px] text-slate-500">Administrator · SMK Negeri 1 Magelang</p>
           </div>
           <span class="inline-flex items-center gap-1.5 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-[3px] text-xs font-semibold leading-4 text-yellow-700">
             <span class="h-1.5 w-1.5 rounded-full bg-yellow-700" />
@@ -36,7 +37,7 @@
         </div>
         <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-6 py-5 md:grid-cols-2 xl:grid-cols-4">
           <InfoItem icon="mail" label="Email" :value="auth.user?.email" />
-          <!-- Kolom telepon belum ada di tabel users BE -->
+          <!-- telp belum ada di tabel users BE -->
           <InfoItem icon="smartphone" label="Nomor Telepon" :value="auth.user?.telp" />
           <InfoItem icon="user" label="Username" :value="auth.user?.username" />
           <InfoItem icon="shield" label="Hak Akses" value="Semua modul" />

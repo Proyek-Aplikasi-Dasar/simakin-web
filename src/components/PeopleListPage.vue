@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader :breadcrumb="breadcrumb" :title="title" :subtitle="subtitle">
       <router-link
         to="/admin/export-import"
@@ -19,14 +19,14 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <CardHeader :title="cardTitle" :description="cardSubtitle" />
 
-        <div v-if="tabs.length" class="flex gap-8 overflow-x-auto border-b border-slate-200 px-6">
+        <div v-if="tabs.length" class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:gap-8 sm:px-6">
           <button
             v-for="(tab, i) in tabs"
             :key="tab"
@@ -41,9 +41,9 @@
           </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 px-6 py-4">
+        <div class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
           <label
-            class="flex h-11 min-w-[240px] flex-1 items-center gap-3 rounded-xl bg-slate-100 px-4 opacity-70"
+            class="flex h-11 w-full min-w-0 items-center gap-3 rounded-xl bg-slate-100 px-4 opacity-70 sm:min-w-[240px] sm:flex-1"
             title="Pencarian aktif setelah data dari BE tersedia"
           >
             <AppIcon name="search" class="h-4 w-4 shrink-0 text-slate-400" />
@@ -58,7 +58,7 @@
           <span
             v-for="f in filters"
             :key="f"
-            class="flex h-11 w-[190px] cursor-not-allowed items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 opacity-60"
+            class="flex h-11 w-full cursor-not-allowed items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 opacity-60 sm:w-[190px]"
             title="Menunggu data dari BE"
           >
             {{ f }}
@@ -75,7 +75,7 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
+        <div class="hidden items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5 sm:flex">
           <span
             v-for="(col, i) in columns"
             :key="col"

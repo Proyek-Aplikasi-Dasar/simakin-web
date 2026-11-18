@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { abortPendingRequests } from '../services/api'
 
 function masterFormRoutes(type) {
   const component = () => import('../views/admin/MasterFormPage.vue')
@@ -298,7 +299,7 @@ const routes = [
       {
         path: '',
         name: 'guru-home',
-        component: () => import('../views/Dashboard.vue'),
+        component: () => import('../views/guru/GuruDashboard.vue'),
       },
       {
         path: 'presensi-siswa',
@@ -361,6 +362,10 @@ router.beforeEach(async (to) => {
   if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(auth.role)) {
     return auth.homePath
   }
+})
+
+router.beforeResolve((to, from) => {
+  if (to.path !== from.path) abortPendingRequests()
 })
 
 export default router

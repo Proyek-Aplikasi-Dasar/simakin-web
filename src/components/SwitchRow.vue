@@ -10,7 +10,8 @@
       role="switch"
       :aria-checked="modelValue"
       :aria-label="label"
-      :class="['relative h-6 w-11 shrink-0 rounded-full transition-colors', modelValue ? 'bg-blue-600' : 'bg-slate-300']"
+      :disabled="disabled"
+      :class="['relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50', modelValue ? 'bg-blue-600' : 'bg-slate-300']"
       @click="$emit('update:modelValue', !modelValue)"
     >
       <span
@@ -26,6 +27,7 @@
 <script setup>
 defineProps({
   modelValue: Boolean,
+  disabled: Boolean,
   label: { type: String, required: true },
   hint: { type: String, default: '' },
 })

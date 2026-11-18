@@ -9,7 +9,7 @@
     <div class="flex max-w-[800px] flex-col gap-6">
       <FormCard title="Jam Presensi" description="Presensi cukup satu kali per hari, tanpa presensi masuk dan pulang.">
         <p v-if="loadError" class="mb-4 rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
-        <p v-if="loading" class="text-sm text-slate-500">Memuat data...</p>
+        <PageSkeleton v-if="loading" :blocks="2" />
 
         <div v-else class="flex flex-col gap-5">
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -86,6 +86,7 @@ import FormField from '../../components/FormField.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
 import PenilaianBulananSettings from '../../components/PenilaianBulananSettings.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 import { getErrorMessage } from '../../services/api'
 import { useMasterResource, fetchAll } from '../../composables/useMasterResource'
 

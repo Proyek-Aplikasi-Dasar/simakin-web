@@ -18,7 +18,7 @@
 
     <form class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]" novalidate @submit.prevent="submit">
       <FormCard title="Form Data Perusahaan" description="Pastikan data perusahaan mitra terisi dengan benar.">
-        <p v-if="loading" class="text-sm text-slate-500">Memuat data...</p>
+        <PageSkeleton v-if="loading" :blocks="2" />
 
         <div v-else class="grid grid-cols-1 gap-5 md:grid-cols-2">
           <FormField id="nama" v-model="form.nama" label="Nama Perusahaan" required placeholder="Masukkan nama perusahaan" :error="errorOf('nama')" @blur="touch('nama')" />
@@ -122,6 +122,7 @@ import FormField from '../../components/FormField.vue'
 import MultiSelectChips from '../../components/MultiSelectChips.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 import MapView from '../../components/MapView.vue'
 import api, { getErrorMessage } from '../../services/api'
 import { useMasterResource, fetchAll } from '../../composables/useMasterResource'
@@ -224,7 +225,6 @@ onMounted(async () => {
   }
 })
 
-// Kolom radius_presensi di BE tidak boleh NULL (default 100): jangan kirim jika dikosongkan.
 function buildValues() {
   const values = { ...form }
   if (values.radius_presensi === '' || values.radius_presensi == null) delete values.radius_presensi

@@ -14,7 +14,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loadingData" class="py-16 text-center text-sm text-slate-400">Memuat data siswa…</p>
+    <PageSkeleton v-if="loadingData" />
     <div v-else-if="loadError" class="flex flex-col items-center gap-3 py-16 text-center">
       <p class="text-sm text-red-600">{{ loadError }}</p>
       <router-link :to="backTo" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50">
@@ -53,7 +53,6 @@
               :max="today"
               :error="err('tanggal_lahir')"
             />
-            <FormField id="kelas" v-model="form.kelas" label="Kelas" placeholder="Contoh: XII RPL 1" :error="err('kelas')" />
             <FormField
               id="jenis_kelamin"
               v-model="form.jenis_kelamin"
@@ -103,8 +102,17 @@
       </div>
 
       <div class="flex flex-col gap-6">
-        <FormCard title="Akademik" description="Penempatan PKL diatur lewat menu Lokasi & Penempatan.">
+        <FormCard title="Alokasi PKL" description="Bisa diisi nanti lewat menu Lokasi & Penempatan.">
           <div class="flex flex-col gap-5">
+            <FormField id="perusahaan_id" v-model="form.perusahaan_id" label="Tempat PKL" placeholder="Pilih tempat PKL" searchable :options="perusahaanOptions" />
+            <FormField id="guru_id" v-model="form.guru_id" label="Guru Pembimbing" placeholder="Pilih guru pembimbing" searchable :options="guruOptions" />
+            <FormField id="periode_id" v-model="form.periode_id" label="Periode" placeholder="Pilih periode" :options="periodeOptions" :error="placeError" />
+          </div>
+        </FormCard>
+
+        <FormCard title="Akademik" description="Kelas, jurusan, dan gelombang siswa.">
+          <div class="flex flex-col gap-5">
+            <FormField id="kelas" v-model="form.kelas" label="Kelas" placeholder="Contoh: XII RPL 1" :error="err('kelas')" />
             <FormField
               id="jurusan_id"
               v-model="form.jurusan_id"
@@ -130,9 +138,22 @@
         </FormCard>
 
         <FormCard title="Akun Siswa" description="Username login siswa selalu sama dengan NIS.">
-          <div v-if="!isEdit" class="-my-3">
-            <SwitchRow v-model="form.akun_otomatis" label="Buat akun otomatis" hint="Kata sandi awal memakai NIS (minimal 8 karakter)." />
+          <div class="-my-3">
+            <SwitchRow v-if="!isEdit" v-model="form.akun_otomatis" label="Buat akun otomatis" hint="Username dan password awal memakai NIS." />
+            <SwitchRow :model-value="false" disabled label="Wajib ganti password" hint="Belum tersedia di sistem." />
           </div>
+
+          <button
+            v-if="isEdit"
+            type="button"
+            :disabled="!canReset"
+            :title="canReset ? '' : 'NIS minimal 8 karakter agar bisa dijadikan kata sandi.'"
+            class="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            @click="showReset = true"
+          >
+            <AppIcon name="key-round" class="h-4 w-4" />
+            Reset Password ke NIS
+          </button>
 
           <div v-if="showPassword" :class="['flex flex-col gap-5', !isEdit && 'mt-5']">
             <FormField
@@ -156,6 +177,15 @@
         </FormCard>
       </div>
     </form>
+
+    <ConfirmDialog
+      :show="showReset"
+      title="Reset password ke NIS?"
+      message="Kata sandi siswa akan diganti dengan NIS-nya dan semua sesi login siswa dikeluarkan."
+      :loading="resetting"
+      @cancel="showReset = false"
+      @confirm="resetPassword"
+    />
   </div>
 </template>
 
@@ -163,7 +193,9 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { getErrorMessage } from '../../services/api'
-import { fetchAllPages, toIso } from '../../utils/siswa'
+import { fetchAllPages, toIso, formatDate } from '../../utils/siswa'
+import { useToastStore } from '../../stores/toast'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import { useMasterResource } from '../../composables/useMasterResource'
 import { useFormValidation } from '../../composables/useFormValidation'
 import { required } from '../../utils/validators'
@@ -172,6 +204,7 @@ import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 
 const props = defineProps({
   id: { type: String, default: null },
@@ -204,14 +237,28 @@ const form = reactive({
   alamat_ortu: '',
   jurusan_id: '',
   gelombang_id: '',
+  perusahaan_id: '',
+  guru_id: 'none',
+  periode_id: '',
   akun_otomatis: true,
   password: '',
   password_confirmation: '',
 })
 
-const today = toIso(new Date()) // tanggal lokal, bukan UTC (toISOString bisa mundur sehari sebelum jam 07.00 WIB)
+const today = toIso(new Date()) 
+const toast = useToastStore()
 const jurusanOptions = ref([])
 const gelombangOptions = ref([])
+const perusahaanOptions = ref([])
+const guruOptions = ref([])
+const periodeOptions = ref([])
+const placeError = ref('')
+const lokasiAktif = ref(null)
+const userId = ref(null)
+const nisAsli = ref('')
+const showReset = ref(false)
+const resetting = ref(false)
+const canReset = computed(() => nisAsli.value.trim().length >= 8 && !!userId.value)
 const loadingData = ref(isEdit)
 const loadError = ref('')
 
@@ -219,7 +266,6 @@ const { saving, fieldErrors, save } = useMasterResource('/api/siswa', { name: 'S
 
 const REQUIRED = 'Kolom ini wajib diisi'
 const autoAccount = (f) => !isEdit && f.akun_otomatis
-// Kata sandi hanya divalidasi bila diisi manual (atau saat edit dan salah satu kolomnya terisi)
 const needsPassword = (f) => !autoAccount(f) && (!isEdit || !!f.password || !!f.password_confirmation)
 
 const { errorOf, validate, touch } = useFormValidation(
@@ -242,18 +288,31 @@ const { errorOf, validate, touch } = useFormValidation(
 )
 const err = (key) => errorOf(key)
 
-const showPassword = computed(() => isEdit || !form.akun_otomatis)
+const showPassword = computed(() => !isEdit && !form.akun_otomatis)
 
 const text = (v) => (v ?? '').toString().trim() || null
 const num = (v) => (v ? Number(v) : null)
 
 async function loadOptions() {
-  try {
-    const [j, g] = await Promise.all([fetchAllPages('/api/jurusan'), fetchAllPages('/api/gelombang')])
-    jurusanOptions.value = j.map((x) => ({ value: String(x.id), label: x.kode ? `${x.kode} — ${x.nama}` : x.nama }))
-    gelombangOptions.value = g.map((x) => ({ value: String(x.id), label: `${x.nama} · ${x.tahun_ajaran}` }))
-  } catch {
-  }
+  const [j, g, p, gr] = await Promise.allSettled([
+    fetchAllPages('/api/jurusan'),
+    fetchAllPages('/api/gelombang'),
+    fetchAllPages('/api/perusahaan'),
+    fetchAllPages('/api/guru'),
+  ])
+  const ok = (r) => (r.status === 'fulfilled' ? r.value : [])
+  const gel = ok(g)
+  jurusanOptions.value = ok(j).map((x) => ({ value: String(x.id), label: x.kode ? `${x.kode} — ${x.nama}` : x.nama }))
+  gelombangOptions.value = gel.map((x) => ({ value: String(x.id), label: `${x.nama} · ${x.tahun_ajaran}` }))
+  periodeOptions.value = gel.map((x) => ({
+    value: String(x.id),
+    label: `${x.nama} · ${formatDate(x.praktik_mulai)} – ${formatDate(x.praktik_selesai)}`,
+  }))
+  perusahaanOptions.value = ok(p).map((x) => ({ value: String(x.id), label: x.nama }))
+  guruOptions.value = [
+    { value: 'none', label: 'Belum ditentukan' },
+    ...ok(gr).map((x) => ({ value: String(x.id), label: `${x.user?.name ?? '—'} (${x.nip})` })),
+  ]
 }
 
 async function loadSiswa() {
@@ -278,6 +337,19 @@ async function loadSiswa() {
       jurusan_id: s.jurusan?.id ? String(s.jurusan.id) : '',
       gelombang_id: s.gelombang?.id ? String(s.gelombang.id) : '',
     })
+    userId.value = s.user?.id ?? null
+    nisAsli.value = s.nis ?? ''
+    try {
+      const { data: lok } = await api.get(`/api/siswa/${props.id}/lokasi-pkl`)
+      const aktif = (lok.data ?? []).find((l) => l.status === 'active')
+      if (aktif) {
+        lokasiAktif.value = aktif
+        form.perusahaan_id = aktif.perusahaan ? String(aktif.perusahaan.id) : ''
+        form.guru_id = aktif.guru ? String(aktif.guru.id) : 'none'
+        form.periode_id = aktif.gelombang ? String(aktif.gelombang.id) : ''
+      }
+    } catch {
+    }
   } catch (e) {
     loadError.value = getErrorMessage(e, 'Gagal memuat data siswa.')
   } finally {
@@ -317,8 +389,61 @@ async function submit() {
     values.password_confirmation = form.password_confirmation
   }
 
+  placeError.value = ''
+  if (form.perusahaan_id && !(form.periode_id || form.gelombang_id)) {
+    placeError.value = 'Pilih periode untuk penempatan.'
+    return
+  }
+
   const ok = await save({ mode: isEdit ? 'edit' : 'create', row: { id: props.id }, values })
-  if (ok) router.push(backTo)
+  if (!ok) return
+  if (form.perusahaan_id) await simpanPenempatan(nis)
+  router.push(backTo)
+}
+
+async function cariSiswaId(nis) {
+  const { data } = await api.get('/api/siswa', { params: { search: nis } })
+  return (data.data ?? []).find((x) => x.nis === nis)?.id ?? null
+}
+
+async function simpanPenempatan(nis) {
+  const payload = {
+    perusahaan_id: Number(form.perusahaan_id),
+    guru_id: form.guru_id === 'none' ? null : Number(form.guru_id),
+    gelombang_id: Number(form.periode_id || form.gelombang_id),
+  }
+  try {
+    if (lokasiAktif.value) {
+      await api.put(`/api/lokasi-pkl/${lokasiAktif.value.id}`, payload)
+    } else {
+      const siswaId = isEdit ? props.id : await cariSiswaId(nis)
+      if (!siswaId) throw new Error('Siswa tidak ditemukan.')
+      await api.post('/api/lokasi-pkl', { ...payload, siswa_id: Number(siswaId) })
+    }
+  } catch (e) {
+    toast.show(`Data siswa tersimpan, tetapi penempatan gagal: ${getErrorMessage(e, 'atur lewat menu Lokasi & Penempatan.')}`, 'error')
+  }
+}
+
+async function resetPassword() {
+  const pw = nisAsli.value.trim()
+  if (resetting.value || !userId.value || pw.length < 8) return
+  resetting.value = true
+  try {
+    const { data } = await api.put(`/api/users/${userId.value}/password`, {
+      password: pw,
+      password_confirmation: pw,
+    })
+    toast.show(data.message || 'Kata sandi direset ke NIS.')
+  } catch (e) {
+    const status = e.response?.status
+    if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {
+      toast.show(getErrorMessage(e), 'error')
+    }
+  } finally {
+    resetting.value = false
+    showReset.value = false
+  }
 }
 
 onMounted(async () => {

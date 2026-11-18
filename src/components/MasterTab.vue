@@ -1,11 +1,11 @@
 <template>
   <div>
-    <div class="px-6 pb-4 pt-6">
+    <div class="px-4 pb-4 pt-5 sm:px-6 sm:pt-6">
       <h2 class="text-base font-semibold text-slate-900">{{ title }}</h2>
       <p class="mt-0.5 text-xs text-slate-500">{{ subtitle }}</p>
     </div>
 
-    <div class="px-6 pb-5">
+    <div class="px-4 pb-5 sm:px-6">
       <label class="flex h-11 items-center gap-3 rounded-xl bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-blue-200">
         <AppIcon name="search" class="h-4 w-4 text-slate-400" />
         <input
@@ -17,7 +17,7 @@
       </label>
     </div>
 
-    <p v-if="resource.error" class="mx-6 mb-4 rounded-lg bg-red-50 p-3 text-xs text-red-600">
+    <p v-if="resource.error" class="mx-4 mb-4 rounded-lg bg-red-50 p-3 text-xs text-red-600 sm:mx-6">
       {{ resource.error }}
     </p>
 

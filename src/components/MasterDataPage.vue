@@ -172,7 +172,6 @@ function confirmDelete() {
 const showUpload = ref(false)
 const selectedFile = ref(null)
 
-// Validasi format & ukuran sudah ditangani FileUploader; null = file dihapus
 function onFileSelected(file) {
   selectedFile.value = file ?? null
 }

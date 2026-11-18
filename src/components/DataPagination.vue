@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-4 text-xs leading-[18px] text-slate-500">
+  <div class="flex flex-col items-start justify-between gap-3 border-t border-slate-100 px-4 py-4 text-xs leading-[18px] text-slate-500 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
     <p aria-live="polite">
       <template v-if="total">
         Menampilkan {{ from }}–{{ to }} dari {{ total.toLocaleString('id-ID') }} {{ itemLabel }}
@@ -7,7 +7,7 @@
       <template v-else>Tidak ada {{ emptyLabel || itemLabel }}</template>
     </p>
 
-    <nav v-if="lastPage > 1" aria-label="Paginasi" class="flex items-center gap-1.5">
+    <nav v-if="lastPage > 1" aria-label="Paginasi" class="flex max-w-full flex-wrap items-center gap-1.5">
       <button
         type="button"
         :disabled="page <= 1"

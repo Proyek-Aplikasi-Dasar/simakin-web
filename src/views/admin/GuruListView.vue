@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Pengguna' }, { label: 'Guru Pembimbing' }]"
       title="Guru Pembimbing"
@@ -22,77 +22,38 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <CardHeader title="Daftar Guru Pembimbing" description="Guru pembimbing PKL beserta beban bimbingannya." />
 
-        <form class="flex flex-wrap items-center gap-3 px-6 py-4" @submit.prevent="applyFilters">
-          <label
-            class="flex h-10 min-w-[240px] flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200"
-          >
-            <AppIcon name="search" class="h-5 w-5 shrink-0 text-slate-400" />
-            <input
-              ref="searchInput"
-              v-model="draftSearch"
-              type="text"
-              placeholder="Cari nama atau NIP…"
-              class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">
-              Ctrl K
-            </span>
-          </label>
-
-          <SelectDropdown
-            v-model="draftProdi"
-            class="w-[220px]"
-            icon="building"
-            placeholder="Semua Program"
-            :options="prodiItems"
-          />
-
-          <SelectDropdown
-            v-model="draftStatus"
-            class="w-[220px]"
-            icon="circle-check"
-            placeholder="Semua Status"
-            :options="statusItems"
-          />
-
-          <button
-            type="submit"
-            class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100"
-          >
-            <AppIcon name="filter" class="h-5 w-5" />
-            Terapkan
-          </button>
-        </form>
-
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
-          <span
-            v-for="col in columns"
-            :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
-          >
-            {{ col.label }}
-          </span>
-        </div>
-
-        <SkeletonRows v-if="loading" :rows="8" :cols="4" />
-        <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <div v-if="error" class="flex flex-col items-center gap-3 border-t border-slate-100 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">
             Coba lagi
           </button>
         </div>
-        <p v-else-if="!pageRows.length" class="px-6 py-12 text-center text-sm text-slate-400">Tidak ada guru yang cocok.</p>
 
-        <div v-else class="divide-y divide-slate-100">
-          <div v-for="row in pageRows" :key="row.id" class="flex items-center gap-4 px-6 py-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+        <BaseTable
+          v-else
+          v-model:page="page"
+          v-model:search="search"
+          bare
+          :columns="columns"
+          :data="all"
+          :per-page="PAGE_SIZE"
+          apply-button
+          :loading="loading"
+          :filters="filters"
+          :filter-state="filterState"
+          :search-keys="['name', 'nip', 'prodi']"
+          search-placeholder="Cari nama atau NIP…"
+          entity="guru"
+        >
+          <template #cell-name="{ row }">
+            <div class="flex min-w-0 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
               </span>
@@ -101,51 +62,60 @@
                 <span class="truncate text-[11px] leading-[14px] text-slate-500">NIP {{ row.nip }}</span>
               </div>
             </div>
+          </template>
 
-            <span class="w-[170px] truncate text-xs leading-[18px] text-slate-600">{{ row.prodi }}</span>
-            <span class="w-[120px] text-xs font-medium leading-[18px] text-slate-900">{{ row.beban }} siswa</span>
-            <span class="w-[110px] text-xs leading-[18px] text-slate-600">
-              {{ row.perusahaan ? `${row.perusahaan} mitra` : '—' }}
+          <template #cell-beban="{ row }">
+            <div class="flex w-[120px] flex-col gap-1.5">
+              <span class="text-xs font-medium leading-[18px] text-slate-900">{{ row.beban }} / {{ row.kuota ?? '—' }} siswa</span>
+              <div class="h-1.5 w-[120px] overflow-hidden rounded-full bg-slate-200">
+                <div
+                  v-if="row.kuota"
+                  :class="['h-full rounded-full', row.beban >= row.kuota ? 'bg-yellow-700' : 'bg-blue-600']"
+                  :style="{ width: row.beban ? `${Math.min(100, (row.beban / row.kuota) * 100)}%` : '6px' }"
+                />
+              </div>
+            </div>
+          </template>
+
+          <template #cell-perusahaan="{ row }">
+            {{ row.perusahaan ? `${row.perusahaan} mitra` : '—' }}
+          </template>
+
+          <template #cell-status="{ row }">
+            <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', STATUS[row.status].box]">
+              <span :class="['h-1.5 w-1.5 rounded-full', STATUS[row.status].dot]" />
+              {{ STATUS[row.status].label }}
             </span>
+          </template>
 
-            <div class="w-[150px]">
-              <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', STATUS[row.status].box]">
-                <span :class="['h-1.5 w-1.5 rounded-full', STATUS[row.status].dot]" />
-                {{ STATUS[row.status].label }}
-              </span>
-            </div>
-
-            <div class="flex w-[148px] justify-end gap-2">
-              <router-link
-                :to="`/admin/master-data/guru/${row.id}`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Lihat detail"
-                title="Lihat detail"
-              >
-                <AppIcon name="eye" class="h-5 w-5" />
-              </router-link>
-              <router-link
-                :to="`/admin/master-data/guru/${row.id}/edit`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Edit guru"
-                title="Edit guru"
-              >
-                <AppIcon name="pencil" class="h-5 w-5" />
-              </router-link>
-              <button
-                type="button"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600"
-                aria-label="Hapus guru"
-                title="Hapus guru"
-                @click="toDelete = row"
-              >
-                <AppIcon name="trash" class="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="guru" />
+          <template #actions="{ row }">
+            <router-link
+              :to="`/admin/master-data/guru/${row.id}`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Lihat detail"
+              title="Lihat detail"
+            >
+              <AppIcon name="eye" class="h-5 w-5" />
+            </router-link>
+            <router-link
+              :to="`/admin/master-data/guru/${row.id}/edit`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Edit guru"
+              title="Edit guru"
+            >
+              <AppIcon name="pencil" class="h-5 w-5" />
+            </router-link>
+            <button
+              type="button"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600"
+              aria-label="Hapus guru"
+              title="Hapus guru"
+              @click="toDelete = row"
+            >
+              <AppIcon name="trash" class="h-5 w-5" />
+            </button>
+          </template>
+        </BaseTable>
       </section>
     </div>
 
@@ -169,55 +139,44 @@ import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
-import DataPagination from '../../components/DataPagination.vue'
-import SkeletonRows from '../../components/SkeletonRows.vue'
+import BaseTable from '../../components/BaseTable.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
-import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
-import { useSearchShortcut } from '../../composables/useSearchShortcut'
 
 const toast = useToastStore()
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 const STATUS = {
   aktif: { label: 'Aktif', box: 'border-emerald-200 bg-emerald-50 text-emerald-700', dot: 'bg-emerald-700' },
-  kosong: { label: 'Belum Ada Siswa', box: 'border-yellow-200 bg-yellow-50 text-yellow-700', dot: 'bg-yellow-700' },
+  nonaktif: { label: 'Nonaktif', box: 'border-red-200 bg-red-50 text-red-700', dot: 'bg-red-700' },
 }
 
 const columns = [
-  { label: 'Guru', width: 'flex-1', align: '' },
-  { label: 'Program Studi', width: 'w-[170px]', align: '' },
-  { label: 'Beban Bimbingan', width: 'w-[120px]', align: '' },
-  { label: 'Perusahaan', width: 'w-[110px]', align: '' },
-  { label: 'Status', width: 'w-[150px]', align: '' },
-  { label: 'Aksi', width: 'w-[148px]', align: 'text-right' },
+  { key: 'name', label: 'Guru' },
+  { key: 'prodi', label: 'Program Studi', width: 'w-[186px]', cellClass: 'truncate' },
+  { key: 'beban', label: 'Beban Bimbingan', width: 'w-[166px]' },
+  { key: 'perusahaan', label: 'Perusahaan', width: 'w-[116px]', cellClass: 'whitespace-nowrap' },
+  { key: 'status', label: 'Status', width: 'w-[106px]', sortValue: (r) => STATUS[r.status].label },
 ]
 
 const guru = ref([])
 const lokasi = ref([])
-const siswaProdi = ref(new Map()) 
+const jurusanById = ref(new Map())
 const loading = ref(true)
 const error = ref('')
 const page = ref(1)
-
-const draftSearch = ref('')
-const draftProdi = ref('')
-const draftStatus = ref('')
-const applied = reactive({ search: '', prodi: '', status: '' })
+const search = ref('')
+const filterState = reactive({ prodi: '', status: '' })
 
 const toDelete = ref(null)
 const deleting = ref(false)
-const searchInput = ref(null)
-useSearchShortcut(searchInput)
 
 useListState('guru', ['/admin/master-data/guru/'], {
-  snapshot: () => ({ page: page.value, applied: { ...applied } }),
+  snapshot: () => ({ page: page.value, search: search.value, filter: { ...filterState } }),
   restore: (s) => {
     page.value = s.page
-    Object.assign(applied, s.applied)
-    draftSearch.value = s.applied.search
-    draftProdi.value = s.applied.prodi
-    draftStatus.value = s.applied.status
+    search.value = s.search ?? ''
+    Object.assign(filterState, s.filter ?? {})
   },
 })
 
@@ -226,90 +185,70 @@ const ready = computed(() => !loading.value && !error.value)
 const all = computed(() =>
   guru.value.map((g) => {
     const active = lokasi.value.filter((l) => l.guru?.id === g.id && l.status === 'active')
-    const count = {}
-    active.forEach((l) => {
-      const p = siswaProdi.value.get(l.siswa?.id)
-      if (p) count[p] = (count[p] || 0) + 1
-    })
-    const prodi = Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—'
+    const prodi = g.jurusan?.nama ?? jurusanById.value.get(g.jurusan_id) ?? '—'
     return {
       id: g.id,
       name: g.user?.name ?? '—',
       nip: g.nip,
       prodi,
       beban: active.length,
+      kuota: g.kuota_bimbingan ?? null,
       perusahaan: new Set(active.map((l) => l.perusahaan?.id).filter(Boolean)).size,
-      status: active.length ? 'aktif' : 'kosong',
+      gelombang: active[0]?.gelombang ?? null,
+      status: g.is_active === false ? 'nonaktif' : 'aktif',
     }
   })
 )
 
 const prodiOptions = computed(() => [...new Set(all.value.map((r) => r.prodi).filter((p) => p !== '—'))].sort())
 
-const prodiItems = computed(() => [
-  { value: '', label: 'Semua Program' },
-  ...prodiOptions.value.map((p) => ({ value: p, label: p })),
+const filters = computed(() => [
+  { key: 'prodi', label: 'Program', icon: 'building', options: prodiOptions.value.map((p) => ({ value: p, label: p })) },
+  {
+    key: 'status',
+    label: 'Status',
+    icon: 'circle-check',
+    options: [
+      { value: 'aktif', label: 'Aktif' },
+      { value: 'nonaktif', label: 'Nonaktif' },
+    ],
+  },
 ])
-const statusItems = [
-  { value: '', label: 'Semua Status' },
-  { value: 'aktif', label: 'Aktif Membimbing' },
-  { value: 'kosong', label: 'Belum Ada Siswa' },
-]
 
 const stats = computed(() => {
   const total = all.value.length
-  const aktif = all.value.filter((r) => r.status === 'aktif').length
+  const aktif = all.value.filter((r) => r.beban > 0).length
   const siswa = all.value.reduce((n, r) => n + r.beban, 0)
+  const gel = all.value.find((r) => r.gelombang)?.gelombang
+  const gelLabel = gel ? [gel.nama, gel.tahun_ajaran].filter(Boolean).join(' · ') : ''
   const avg = total ? Math.round((siswa / total) * 10) / 10 : 0
   const r = ready.value
   return [
     { label: 'Total Guru', icon: 'user-check', tone: 'blue', value: r ? total : null, hint: 'guru pembimbing terdaftar' },
-    { label: 'Aktif Membimbing', icon: 'user-check', tone: 'green', value: r ? aktif : null, hint: 'punya siswa aktif PKL' },
+    { label: 'Aktif Membimbing', icon: 'user-check', tone: 'green', value: r ? aktif : null, hint: gelLabel || 'punya siswa aktif PKL' },
     { label: 'Rata-rata Bimbingan', icon: 'users', tone: 'blue', value: r ? avg : null, hint: 'siswa per guru' },
     { label: 'Belum Ada Siswa', icon: 'alert', tone: 'amber', value: r ? total - aktif : null, hint: 'perlu dialokasikan' },
   ]
 })
 
-const filtered = computed(() => {
-  const q = applied.search.toLowerCase()
-  return all.value.filter(
-    (r) =>
-      (!applied.prodi || r.prodi === applied.prodi) &&
-      (!applied.status || r.status === applied.status) &&
-      (!q || r.name.toLowerCase().includes(q) || String(r.nip).toLowerCase().includes(q))
-  )
-})
-
-const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
-const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
-
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [g, l, s] = await Promise.all([
+    const [g, l, j] = await Promise.all([
       fetchAllPages('/api/guru'),
       fetchAllPages('/api/lokasi-pkl'),
-      fetchAllPages('/api/siswa'),
+      fetchAllPages('/api/jurusan'),
     ])
     guru.value = g
     lokasi.value = l
-    siswaProdi.value = new Map(s.map((x) => [x.id, x.jurusan?.nama || x.jurusan?.kode || null]))
+    jurusanById.value = new Map(j.map((x) => [x.id, x.nama]))
   } catch (err) {
     guru.value = []
     error.value = getErrorMessage(err, 'Gagal memuat data guru.')
   } finally {
     loading.value = false
   }
-}
-
-function applyFilters() {
-  applied.search = draftSearch.value.trim()
-  applied.prodi = draftProdi.value
-  applied.status = draftStatus.value
-  page.value = 1
 }
 
 async function confirmDelete() {
@@ -320,7 +259,6 @@ async function confirmDelete() {
     const { data } = await api.delete(`/api/guru/${target.id}`)
     toast.show(data.message || 'Guru berhasil dihapus.')
     guru.value = guru.value.filter((g) => g.id !== target.id)
-    if (page.value > lastPage.value) page.value = lastPage.value
   } catch (err) {
     const status = err.response?.status
     if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {

@@ -87,7 +87,7 @@ const confirmation = ref('')
 const error = ref('')
 const saving = ref(false)
 
-// Kosongkan form setiap dialog dibuka
+// reset form tiap dialog dibuka
 watch(
   () => props.show,
   (open) => {

@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Monitoring' }, { label: 'Penilaian' }]"
       title="Penilaian"
@@ -26,7 +26,7 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
       </section>
 
@@ -34,13 +34,13 @@
         <CardHeader title="Status Penilaian Siswa" description="Progres penilaian bulanan dan nilai akhir.">
         </CardHeader>
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
           <button
             v-for="t in tabs"
             :key="t.key"
             type="button"
             :class="[
-              '-mb-px flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold',
+              '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold',
               tab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700',
             ]"
             @click="tab = t.key"
@@ -52,8 +52,8 @@
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center gap-3 px-6 py-4" @submit.prevent="applyFilters">
-          <label class="flex h-10 min-w-[240px] flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200">
+        <form class="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6" @submit.prevent="applyFilters">
+          <label class="flex h-10 w-full min-w-0 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200 sm:min-w-[240px] sm:flex-1">
             <AppIcon name="search" class="h-5 w-5 shrink-0 text-slate-400" />
             <input
               ref="searchInput"
@@ -62,48 +62,45 @@
               placeholder="Cari nama / NIS siswa…"
               class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
             />
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">Ctrl K</span>
+            <span class="hidden rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500 md:block">Ctrl K</span>
           </label>
 
-          <label class="flex h-10 w-[200px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
+          <label class="flex h-10 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200 sm:w-[200px]">
             <AppIcon name="calendar" class="h-4 w-4 shrink-0 text-slate-400" />
             <DatePicker v-model="draft.periode" mode="month" bare class="min-w-0 flex-1" />
           </label>
 
           <SelectDropdown
             v-model="draft.program"
-            class="w-[220px]"
+            class="w-full sm:w-[220px]"
             icon="building"
             placeholder="Semua Program Studi"
             :options="programItems"
           />
 
-          <button type="submit" class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100">
+          <button type="submit" class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100 sm:w-auto">
             <AppIcon name="filter" class="h-5 w-5" />
             Terapkan
           </button>
         </form>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
-          <span
-            v-for="col in columns"
-            :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
-          >
-            {{ col.label }}
-          </span>
-        </div>
-
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat data penilaian…</p>
-        <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <div v-if="error" class="flex flex-col items-center gap-3 border-t border-slate-100 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
         </div>
-        <p v-else-if="!pageRows.length" class="px-6 py-12 text-center text-sm text-slate-400">Belum ada data penilaian.</p>
 
-        <div v-else class="divide-y divide-slate-100">
-          <div v-for="row in pageRows" :key="row.siswaId" class="flex items-center gap-4 px-6 py-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+        <AdminTable
+          v-else
+          v-model:page="page"
+          :columns="columns"
+          :rows="filtered"
+          :per-page="PAGE_SIZE"
+          :loading="loading"
+          entity="siswa"
+          actions-width="w-[80px]"
+        >
+          <template #cell-nama="{ row }">
+            <div class="flex min-w-0 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
               </span>
@@ -112,55 +109,53 @@
                 <p class="truncate text-[11px] leading-[14px] text-slate-500">NIS {{ row.nis }} · {{ row.program }}</p>
               </div>
             </div>
+          </template>
 
-            <span class="w-[170px] truncate text-xs text-slate-600">{{ row.pembimbing }}</span>
-
-            <template v-if="tab === 'bulanan'">
-              <div class="flex w-[150px] flex-col gap-1.5">
-                <span class="text-xs font-medium leading-[18px] text-slate-900">{{ row.bulanTerisi }} dari {{ row.totalBulan }} bulan</span>
-                <div class="h-1.5 w-[120px] overflow-hidden rounded-full bg-slate-200">
-                  <div class="h-full rounded-full bg-blue-600" :style="{ width: persen(row.bulanTerisi, row.totalBulan) + '%' }" />
-                </div>
+          <template #cell-progres="{ row }">
+            <div class="flex flex-col gap-1.5">
+              <span class="text-xs font-medium leading-[18px] text-slate-900">{{ row.bulanTerisi }} dari {{ row.totalBulan }} bulan</span>
+              <div class="h-1.5 w-[120px] overflow-hidden rounded-full bg-slate-200">
+                <div class="h-full rounded-full bg-blue-600" :style="{ width: persen(row.bulanTerisi, row.totalBulan) + '%' }" />
               </div>
-
-              <div class="w-[130px]">
-                <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', STATUS[row.statusBulanIni].box]">
-                  <span :class="['h-1.5 w-1.5 rounded-full', STATUS[row.statusBulanIni].dot]" />
-                  {{ STATUS[row.statusBulanIni].label }}
-                </span>
-              </div>
-
-              <div class="w-[110px] text-xs text-slate-500">
-                <template v-if="row.rataRata != null">
-                  <span class="text-sm font-bold text-slate-900">{{ row.rataRata }}</span> /100
-                </template>
-                <template v-else>—</template>
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="w-[150px] text-xs text-slate-500">
-                <template v-if="row.nilaiAkhir != null">
-                  <span class="text-sm font-bold text-slate-900">{{ row.nilaiAkhir }}</span> /100
-                </template>
-                <template v-else>Belum diinput</template>
-              </div>
-            </template>
-
-            <div class="flex w-[48px] justify-end">
-              <router-link
-                :to="`/admin/penilaian/${row.siswaId}`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Lihat penilaian siswa"
-                title="Lihat detail penilaian"
-              >
-                <AppIcon name="eye" class="h-5 w-5" />
-              </router-link>
             </div>
-          </div>
-        </div>
+          </template>
 
-        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="siswa" />
+          <template #cell-statusBulanIni="{ row }">
+            <span :class="['inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', STATUS[row.statusBulanIni].box]">
+              <span :class="['h-1.5 w-1.5 rounded-full', STATUS[row.statusBulanIni].dot]" />
+              {{ STATUS[row.statusBulanIni].label }}
+            </span>
+          </template>
+
+          <template #cell-rataRata="{ row }">
+            <div class="text-xs text-slate-500">
+              <template v-if="row.rataRata != null">
+                <span class="text-sm font-bold text-slate-900">{{ row.rataRata }}</span> /100
+              </template>
+              <template v-else>—</template>
+            </div>
+          </template>
+
+          <template #cell-nilaiAkhir="{ row }">
+            <div class="text-xs text-slate-500">
+              <template v-if="row.nilaiAkhir != null">
+                <span class="text-sm font-bold text-slate-900">{{ row.nilaiAkhir }}</span> /100
+              </template>
+              <template v-else>Belum diinput</template>
+            </div>
+          </template>
+
+          <template #actions="{ row }">
+            <router-link
+              :to="`/admin/penilaian/${row.siswaId}`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Lihat penilaian siswa"
+              title="Lihat detail penilaian"
+            >
+              <AppIcon name="eye" class="h-5 w-5" />
+            </router-link>
+          </template>
+        </AdminTable>
       </section>
     </div>
   </div>
@@ -173,7 +168,7 @@ import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
-import DataPagination from '../../components/DataPagination.vue'
+import AdminTable from '../../components/AdminTable.vue'
 import SelectDropdown from '../../components/SelectDropdown.vue'
 import { useListState } from '../../composables/useListState'
 
@@ -185,18 +180,16 @@ const STATUS = {
 }
 
 const columnsBulanan = [
-  { label: 'Siswa', width: 'flex-1', align: '' },
-  { label: 'Guru Pembimbing', width: 'w-[170px]', align: '' },
-  { label: 'Progres Bulanan', width: 'w-[150px]', align: '' },
-  { label: 'Bulan Ini', width: 'w-[130px]', align: '' },
-  { label: 'Nilai Rata-rata', width: 'w-[110px]', align: '' },
-  { label: 'Aksi', width: 'w-[48px]', align: 'text-right' },
+  { key: 'nama', label: 'Siswa' },
+  { key: 'pembimbing', label: 'Guru Pembimbing', width: 'w-[186px]', cellClass: 'sm:truncate' },
+  { key: 'progres', label: 'Progres Bulanan', width: 'w-[166px]' },
+  { key: 'statusBulanIni', label: 'Bulan Ini', width: 'w-[146px]' },
+  { key: 'rataRata', label: 'Nilai Rata-rata', width: 'w-[126px]' },
 ]
 const columnsAkhir = [
-  { label: 'Siswa', width: 'flex-1', align: '' },
-  { label: 'Guru Pembimbing', width: 'w-[170px]', align: '' },
-  { label: 'Nilai Akhir', width: 'w-[150px]', align: '' },
-  { label: 'Aksi', width: 'w-[48px]', align: 'text-right' },
+  { key: 'nama', label: 'Siswa' },
+  { key: 'pembimbing', label: 'Guru Pembimbing', width: 'w-[186px]', cellClass: 'sm:truncate' },
+  { key: 'nilaiAkhir', label: 'Nilai Akhir', width: 'w-[166px]' },
 ]
 
 const rows = ref([])
@@ -288,11 +281,6 @@ const stats = computed(() => {
   ]
 })
 
-const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
-const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
-
 const persen = (val, total) => (total ? Math.min(100, Math.round((val / total) * 100)) : 0)
 
 function onKey(e) {
@@ -303,9 +291,6 @@ function onKey(e) {
 }
 
 watch(tab, () => (page.value = 1))
-watch(filtered, () => {
-  if (page.value > lastPage.value) page.value = lastPage.value
-})
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)

@@ -1,5 +1,21 @@
 <template>
-  <div class="min-h-screen flex bg-white font-sans">
+  <div class="min-h-screen flex flex-col lg:flex-row bg-white font-sans">
+    <header class="lg:hidden relative overflow-hidden bg-blue-600 px-6 pb-14 pt-8 sm:pt-10">
+      <div class="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-blue-700"></div>
+      <div class="absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-blue-700"></div>
+      <div class="relative mx-auto flex w-full max-w-[400px] flex-col gap-4">
+        <div class="flex items-center gap-3">
+          <img src="../assets/logo-simakin.png" alt="" class="h-10 w-10" />
+          <div>
+            <p class="text-base font-bold leading-6 text-white">SimakIn</p>
+            <p class="text-[11px] leading-[14px] text-blue-200">SMK Negeri 1 Magelang</p>
+          </div>
+        </div>
+        <h2 class="text-lg font-bold leading-7 tracking-[-0.01em] text-white">
+          {{ copy.headline }}
+        </h2>
+      </div>
+    </header>
     <section class="hidden lg:flex relative overflow-hidden flex-col justify-between w-[640px] shrink-0 bg-blue-600 p-16">
       <div class="absolute left-[300px] -top-[160px] w-[520px] h-[520px] rounded-full bg-blue-700"></div>
       <div class="absolute -left-[120px] top-[640px] w-[360px] h-[360px] rounded-full bg-blue-700"></div>
@@ -37,8 +53,8 @@
       <p class="relative text-[11px] leading-[14px] text-blue-200">© 2026 SMK Negeri 1 Magelang</p>
     </section>
 
-    <section class="flex flex-1 items-center justify-center p-6">
-      <form class="flex w-[400px] max-w-full flex-col gap-6" @submit.prevent="handleLogin">
+    <section class="relative -mt-8 flex flex-1 justify-center rounded-t-[32px] bg-white px-6 pb-10 pt-8 lg:mt-0 lg:items-center lg:rounded-none lg:p-6">
+      <form class="flex w-full max-w-[400px] flex-col gap-6" @submit.prevent="handleLogin">
         <div class="flex flex-col gap-1.5">
           <h1 class="text-2xl font-bold leading-8 tracking-[-0.02em] text-slate-900">Masuk ke SimakIn</h1>
           <p class="text-xs leading-[18px] text-slate-600">{{ copy.subtitle }}</p>
@@ -49,7 +65,7 @@
             v-for="opt in roleOptions"
             :key="opt.value"
             :class="[
-              'flex flex-1 cursor-pointer items-center gap-2.5 rounded-xl px-4 py-3',
+              'flex flex-1 cursor-pointer items-center gap-2 rounded-xl px-3 py-3 sm:gap-2.5 sm:px-4',
               'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-300',
               selectedRole === opt.value
                 ? 'border-[1.5px] border-blue-600 bg-blue-50'
@@ -64,7 +80,7 @@
               ]"
             ></span>
             <span
-              :class="['text-sm font-semibold', selectedRole === opt.value ? 'text-blue-600' : 'text-slate-600']"
+              :class="['text-xs font-semibold sm:text-sm', selectedRole === opt.value ? 'text-blue-600' : 'text-slate-600']"
             >
               {{ opt.label }}
             </span>
@@ -138,7 +154,11 @@
             </button>
             <span class="text-xs font-medium text-slate-600">Ingat saya</span>
           </div>
-          <router-link to="/forgot-password" class="text-xs font-semibold text-blue-600">
+          <router-link
+            v-if="selectedRole !== 'admin'"
+            to="/forgot-password"
+            class="text-xs font-semibold text-blue-600"
+          >
             Lupa password?
           </router-link>
         </div>

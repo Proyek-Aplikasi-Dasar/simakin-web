@@ -21,9 +21,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loading" class="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-400">
-      Memuat data...
-    </p>
+    <PageSkeleton v-if="loading" />
     <p v-else-if="loadError" class="rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
 
     <div v-else class="flex flex-col gap-6">
@@ -98,7 +96,7 @@
                     </td>
                   </tr>
                   <tr v-else-if="!penempatanLoaded">
-                    <td colspan="5" class="px-6 py-10 text-center text-xs text-slate-400">Memuat data...</td>
+                    <td colspan="5" class="px-6 py-6"><SkeletonRows :rows="3" :cols="3" :avatar="false" :action="false" /></td>
                   </tr>
                   <tr v-else-if="!penempatan.length">
                     <td colspan="5" class="px-6 py-10 text-center text-xs text-slate-400">
@@ -200,6 +198,8 @@
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
 import PageHeader from '../../components/PageHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
 import FormCard from '../../components/FormCard.vue'
 import StatCard from '../../components/StatCard.vue'
 import api, { getErrorMessage } from '../../services/api'
@@ -220,7 +220,6 @@ const penempatan = ref([])
 const penempatanLoaded = ref(false)
 const penempatanError = ref('')
 
-// null selama data belum siap, supaya kartu menampilkan strip, bukan angka 0 yang menyesatkan
 const jumlahAktif = computed(() =>
   penempatanLoaded.value ? penempatan.value.filter((l) => l.status === 'active').length : null
 )
@@ -267,7 +266,6 @@ onMounted(async () => {
     loading.value = false
   }
 
-  // Penempatan dimuat terpisah: kegagalannya tidak boleh menutup detail perusahaan
   if (loadError.value) return
   try {
     penempatan.value = await fetchAllPages('/api/lokasi-pkl', { perusahaan_id: props.id })

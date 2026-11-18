@@ -41,7 +41,7 @@
           </button>
         </div>
 
-        <p v-if="loading" class="px-6 py-12 text-center text-sm text-slate-400">Memuat notifikasi…</p>
+        <SkeletonRows v-if="loading" :rows="5" :cols="1" :avatar="false" :action="false" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
@@ -150,6 +150,7 @@ import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import RadioCardGroup from '../../components/RadioCardGroup.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import SkeletonRows from '../../components/SkeletonRows.vue'
 
 const PAGE_SIZE = 10
 

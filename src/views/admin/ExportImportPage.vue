@@ -77,7 +77,7 @@
             <p class="mr-auto text-[11px] text-slate-500">Format file: .xlsx, baris pertama berisi nama kolom.</p>
             <button
               type="button"
-              :disabled="!jenis || !file || importing"
+              :disabled="importing"
               class="flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               @click="startImport"
             >
@@ -176,7 +176,15 @@ const importOptions = computed(() =>
 )
 
 async function startImport() {
-  if (!jenis.value || !file.value || importing.value) return
+  if (importing.value) return
+  if (!jenis.value) {
+    toast.show('Pilih jenis data terlebih dahulu.', 'error')
+    return
+  }
+  if (!file.value) {
+    toast.show('Pilih file .xlsx terlebih dahulu.', 'error')
+    return
+  }
   importing.value = true
   result.value = null
   try {

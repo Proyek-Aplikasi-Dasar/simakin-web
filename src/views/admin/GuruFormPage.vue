@@ -3,7 +3,7 @@
     <PageHeader
       :breadcrumb="[{ label: 'Guru Pembimbing', to: backTo }, { label: pageTitle }]"
       :title="pageTitle"
-      subtitle="Lengkapi identitas guru dan alokasikan siswa bimbingan."
+      :subtitle="isEdit ? 'Ubah identitas guru dan alokasi siswa bimbingan.' : 'Lengkapi identitas guru dan alokasikan siswa bimbingan.'"
     >
       <router-link
         :to="backTo"
@@ -14,7 +14,7 @@
       </router-link>
     </PageHeader>
 
-    <p v-if="loadingData" class="py-16 text-center text-sm text-slate-400">Memuat data guru…</p>
+    <PageSkeleton v-if="loadingData" />
     <div v-else-if="loadError" class="flex flex-col items-center gap-3 py-16 text-center">
       <p class="text-sm text-red-600">{{ loadError }}</p>
       <router-link :to="backTo" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50">
@@ -28,12 +28,13 @@
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
             <FormField id="name" v-model="form.name" label="Nama Lengkap (beserta gelar)" placeholder="Masukkan nama lengkap" :error="err('name')" />
             <FormField id="nip" v-model="form.nip" label="NIP" placeholder="Masukkan NIP" :error="local.nip || fieldErrors.nip || fieldErrors.username || ''" />
+            <FormField v-if="isEdit" id="email" :model-value="form.email" type="email" label="Email" readonly />
             <FormField
               id="telp"
               v-model="form.telp"
               type="tel"
               inputmode="tel"
-              label="No. Telepon"
+              label="Nomor Telepon"
               placeholder="Contoh: 081234567890"
               :maxlength="20"
               :error="err('telp')"
@@ -41,10 +42,10 @@
             <FormField
               id="jurusan"
               v-model="form.jurusan_id"
-              label="Jurusan"
-              placeholder="Pilih jurusan"
+              label="Program Studi"
+              placeholder="Pilih program studi"
               :options="jurusanOptions"
-              hint="Opsional."
+              :hint="isEdit ? '' : 'Opsional.'"
               :error="err('jurusan_id')"
             />
             <FormField
@@ -56,6 +57,7 @@
               label="Kuota Bimbingan"
               placeholder="Jumlah maksimal siswa bimbingan"
               suffix="siswa"
+              hint="Batas maksimal siswa."
               :error="err('kuota_bimbingan')"
             />
             <FormField
@@ -63,7 +65,7 @@
               v-model="form.alamat"
               class="md:col-span-2"
               textarea
-              :rows="3"
+              :rows="isEdit ? 5 : 3"
               label="Alamat"
               placeholder="Alamat lengkap (opsional)"
               :error="err('alamat')"
@@ -84,13 +86,13 @@
               class="flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <AppIcon name="save" class="h-4 w-4" />
-              {{ saving ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan Data Guru' }}
+              {{ saving ? 'Menyimpan…' : 'Simpan Data Guru' }}
             </button>
           </template>
         </FormCard>
 
-        <FormCard title="Akun Guru" description="Username login guru selalu sama dengan NIP.">
-          <div v-if="!isEdit" class="-my-3">
+        <FormCard v-if="!isEdit" title="Akun Guru" description="Username login guru selalu sama dengan NIP.">
+          <div class="-my-3">
             <SwitchRow v-model="form.akun_otomatis" label="Buat akun otomatis" hint="Kata sandi awal memakai NIP (minimal 8 karakter)." />
           </div>
 
@@ -116,7 +118,7 @@
         </FormCard>
       </div>
 
-      <FormCard title="Alokasi Siswa" :description="isEdit ? `${alokasi.length} siswa aktif dibimbing.` : 'Diatur setelah guru disimpan.'">
+      <FormCard title="Alokasi Siswa" :description="alokasiDeskripsi">
         <template #action>
           <router-link to="/admin/lokasi-penempatan" class="text-xs font-semibold text-blue-600 hover:underline">Tambah</router-link>
         </template>
@@ -130,14 +132,32 @@
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-5 w-5" />
             </span>
-            <div class="flex min-w-0 flex-col">
+            <div class="flex min-w-0 flex-1 flex-col">
               <span class="truncate text-xs font-semibold text-slate-900">{{ l.siswa?.nama }}</span>
-              <span class="truncate text-[11px] text-slate-500">{{ l.perusahaan?.nama ?? '—' }}</span>
+              <span class="truncate text-[11px] text-slate-500">{{ sublineAlokasi(l) }}</span>
             </div>
+            <button
+              type="button"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600"
+              aria-label="Lepas dari guru ini"
+              title="Lepas dari guru ini"
+              @click="toLepas = l"
+            >
+              <AppIcon name="x" class="h-5 w-5" />
+            </button>
           </li>
         </ul>
       </FormCard>
     </form>
+
+    <ConfirmDialog
+      :show="!!toLepas"
+      title="Lepas siswa dari guru ini?"
+      :message="`${toLepas?.siswa?.nama ?? 'Siswa'} tidak lagi dibimbing guru ini. Penempatan PKL-nya tetap ada dan guru bisa diatur ulang di menu Lokasi & Penempatan.`"
+      :loading="lepasing"
+      @cancel="toLepas = null"
+      @confirm="confirmLepas"
+    />
   </div>
 </template>
 
@@ -152,10 +172,14 @@ import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
 import AppIcon from '../../components/AppIcon.vue'
+import PageSkeleton from '../../components/PageSkeleton.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import { useToastStore } from '../../stores/toast'
 
 const props = defineProps({ id: { type: String, default: null } })
 
 const router = useRouter()
+const toast = useToastStore()
 const isEdit = !!props.id
 const pageTitle = isEdit ? 'Edit Guru' : 'Tambah Guru'
 const backTo = '/admin/master-data/guru'
@@ -163,6 +187,7 @@ const backTo = '/admin/master-data/guru'
 const form = reactive({
   name: '',
   nip: '',
+  email: '',
   telp: '',
   jurusan_id: 'none',
   kuota_bimbingan: '',
@@ -174,6 +199,9 @@ const form = reactive({
 })
 const jurusanOptions = ref([{ value: 'none', label: 'Belum ditentukan' }])
 const alokasi = ref([])
+const kelasById = ref(new Map())
+const toLepas = ref(null)
+const lepasing = ref(false)
 const loadingData = ref(isEdit)
 const loadError = ref('')
 
@@ -186,14 +214,26 @@ watch(() => form.nip, () => delete local.nip)
 
 const showPassword = computed(() => isEdit || !form.akun_otomatis)
 
+const alokasiDeskripsi = computed(() => {
+  if (!isEdit) return 'Diatur setelah guru disimpan.'
+  const n = alokasi.value.length
+  return form.kuota_bimbingan !== '' ? `${n} dari ${form.kuota_bimbingan} kuota terisi.` : `${n} siswa aktif dibimbing.`
+})
+
+const sublineAlokasi = (l) =>
+  [kelasById.value.get(l.siswa?.id), l.perusahaan?.nama].filter(Boolean).join(' · ') || '—'
+
 async function loadGuru() {
   try {
-    const [g, l] = await Promise.all([
+    const [g, l, s] = await Promise.all([
       api.get(`/api/guru/${props.id}`),
       fetchAllPages('/api/lokasi-pkl', { guru_id: props.id }),
+      fetchAllPages('/api/siswa').catch(() => []),
     ])
+    kelasById.value = new Map(s.filter((x) => x.kelas).map((x) => [x.id, x.kelas]))
     form.name = g.data.data.user?.name ?? ''
     form.nip = g.data.data.nip ?? ''
+    form.email = g.data.data.user?.email ?? ''
     form.telp = g.data.data.telp ?? ''
     form.jurusan_id = g.data.data.jurusan_id ? String(g.data.data.jurusan_id) : 'none'
     form.kuota_bimbingan = g.data.data.kuota_bimbingan != null ? String(g.data.data.kuota_bimbingan) : ''
@@ -256,6 +296,25 @@ async function submit() {
   if (ok) router.push(backTo)
 }
 
+async function confirmLepas() {
+  const target = toLepas.value
+  if (!target || lepasing.value) return
+  lepasing.value = true
+  try {
+    await api.put(`/api/lokasi-pkl/${target.id}`, { guru_id: null })
+    toast.show(`${target.siswa?.nama ?? 'Siswa'} tidak lagi dibimbing guru ini.`)
+    alokasi.value = alokasi.value.filter((x) => x.id !== target.id)
+  } catch (err) {
+    const status = err.response?.status
+    if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {
+      toast.show(getErrorMessage(err), 'error')
+    }
+  } finally {
+    lepasing.value = false
+    toLepas.value = null
+  }
+}
+
 async function loadJurusan() {
   try {
     const list = await fetchAllPages('/api/jurusan')
@@ -264,7 +323,6 @@ async function loadJurusan() {
       ...list.map((j) => ({ value: String(j.id), label: j.kode ? `${j.nama} (${j.kode})` : j.nama })),
     ]
   } catch {
-    // opsional: form tetap bisa dipakai tanpa pilihan jurusan
   }
 }
 

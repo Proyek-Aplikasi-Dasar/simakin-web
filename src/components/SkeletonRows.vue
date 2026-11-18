@@ -20,7 +20,6 @@
 </template>
 
 <script setup>
-// Bayangan kosong pengganti teks "Memuat data…" pada daftar
 defineProps({
   rows: { type: Number, default: 6 },
   cols: { type: Number, default: 3 },

@@ -1,6 +1,18 @@
 <template>
   <div class="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-    <aside class="sticky top-0 flex h-screen w-[272px] shrink-0 flex-col gap-4 border-r border-slate-200 bg-white py-5 print:hidden">
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden print:hidden"
+      aria-hidden="true"
+      @click="sidebarOpen = false"
+    ></div>
+
+    <aside
+      :class="[
+        'fixed inset-y-0 left-0 z-40 flex h-screen w-[272px] shrink-0 flex-col gap-4 border-r border-slate-200 bg-white py-5 transition-transform duration-200 lg:sticky lg:inset-y-auto lg:top-0 lg:z-auto lg:translate-x-0 print:hidden',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+      ]"
+    >
       <div class="flex shrink-0 items-center gap-3 px-5">
         <img src="../assets/logo-simakin.png" alt="" class="h-10 w-10" />
         <div>
@@ -108,11 +120,24 @@
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex h-[72px] items-center justify-between gap-4 border-b border-slate-200 bg-white px-8">
-        <GlobalSearch :menu-items="searchMenu" />
+      <header class="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:gap-4 sm:px-8">
+        <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 lg:hidden"
+            aria-label="Buka menu"
+            :aria-expanded="sidebarOpen"
+            @click="sidebarOpen = true"
+          >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <GlobalSearch :menu-items="searchMenu" />
+        </div>
 
-        <div class="flex items-center gap-3">
-          <span class="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold leading-4 text-blue-600">
+        <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+          <span class="hidden items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold leading-4 text-blue-600 xl:flex">
             <AppIcon name="calendar" class="h-4 w-4" />
             {{ today }}
           </span>
@@ -126,26 +151,26 @@
             <AppIcon name="bell" class="h-5 w-5" />
           </router-link>
 
-          <span class="h-8 w-px bg-slate-200"></span>
+          <span class="hidden h-8 w-px bg-slate-200 sm:block"></span>
 
           <router-link
             to="/admin/profil"
-            class="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-2 hover:bg-slate-50"
+            class="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-1 hover:bg-slate-50 md:pr-2"
             title="Lihat profil"
           >
             <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-5 w-5" />
             </span>
-            <div>
+            <div class="hidden md:block">
               <p class="text-sm font-semibold leading-5">{{ auth.user?.name }}</p>
               <p class="text-[11px] leading-[14px] text-slate-500">Administrator</p>
             </div>
-            <AppIcon name="chevron-down" class="h-4 w-4 text-slate-500" />
+            <AppIcon name="chevron-down" class="hidden h-4 w-4 text-slate-500 md:block" />
           </router-link>
         </div>
       </header>
 
-      <main class="flex-1">
+      <main class="flex-1 max-md:[&>div]:!p-4">
         <router-view />
       </main>
     </div>
@@ -153,15 +178,22 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import api from '../services/api'
 import AppIcon from '../components/AppIcon.vue'
 import GlobalSearch from '../components/GlobalSearch.vue'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const sidebarOpen = ref(false)
+watch(
+  () => route.path,
+  () => (sidebarOpen.value = false)
+)
 
 const today = new Date().toLocaleDateString('id-ID', {
   weekday: 'long',
@@ -170,6 +202,26 @@ const today = new Date().toLocaleDateString('id-ID', {
   year: 'numeric',
 })
 
+
+const pengajuanPending = ref(null)
+
+async function loadPengajuanPending() {
+  try {
+    const { data } = await api.get('/api/pengajuan-pkl', { params: { status: 'pending' }, persist: true, skipErrorToast: true })
+    pengajuanPending.value = data.meta?.total ?? null
+  } catch {
+    pengajuanPending.value = null
+  }
+}
+
+onMounted(loadPengajuanPending)
+
+watch(
+  () => route.path,
+  (to, from) => {
+    if (from?.startsWith('/admin/pengajuan-pkl') && !to.startsWith('/admin/pengajuan-pkl')) loadPengajuanPending()
+  }
+)
 
 const menu = [
   { title: 'UTAMA', items: [{ label: 'Dashboard', icon: 'dashboard', to: '/admin', exact: true }] },
@@ -185,7 +237,14 @@ const menu = [
   {
     title: 'PKL',
     items: [
-      { label: 'Pengajuan PKL', icon: 'clipboard-list', to: '/admin/pengajuan-pkl' },
+      {
+        label: 'Pengajuan PKL',
+        icon: 'clipboard-list',
+        to: '/admin/pengajuan-pkl',
+        get badge() {
+          return pengajuanPending.value > 0 ? pengajuanPending.value : null
+        },
+      },
       { label: 'Lokasi & Penempatan', icon: 'pin', to: '/admin/lokasi-penempatan' },
     ],
   },
@@ -196,7 +255,7 @@ const menu = [
         label: 'Presensi & Jurnal',
         icon: 'clipboard-check',
         to: '/admin/presensi-siswa',
-        children: [{ label: 'Presensi Siswa', to: '/admin/presensi-siswa' }, {label:'Jurnal Harian', to: '/admin/jurnal-harian'}, {label: 'Rekap Presensi & Jurnal', to: '/admin/rekap-presensi-jurnal'}],
+        children: [{ label: 'Presensi Siswa', to: '/admin/presensi-siswa' }, { label: 'Jurnal Harian' }, {label: 'Rekap Presensi & Jurnal', to: '/admin/rekap-presensi-jurnal'}],
       },
       { label: 'Penilaian', icon: 'chart', to: '/admin/penilaian' },
     ],
@@ -227,7 +286,6 @@ function childActive(item) {
 }
 
 function isOpen(item) {
-  // Default terbuka; tetap bisa ditutup lewat toggle
   return openGroups.value[item.label] ?? true
 }
 

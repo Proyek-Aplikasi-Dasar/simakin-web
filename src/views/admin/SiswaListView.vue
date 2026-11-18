@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Pengguna' }, { label: 'Siswa PKL' }]"
       title="Siswa PKL"
@@ -9,7 +9,7 @@
         to="/admin/export-import"
         class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold leading-5 hover:bg-slate-50"
       >
-        <AppIcon name="file" class="h-5 w-5" />
+        <AppIcon name="file-text" class="h-5 w-5" />
         Export / Import
       </router-link>
       <router-link
@@ -22,94 +22,41 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
-      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <CardHeader title="Daftar Siswa" description="Seluruh siswa peserta praktik kerja lapangan." />
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
           <button
-            v-for="tab in tabs"
-            :key="tab.key"
+            v-for="t in tabs"
+            :key="t.key"
             type="button"
             :class="[
               'flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold',
-              tab.key === applied.tab
+              t.key === tab
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-900',
             ]"
-            @click="selectTab(tab.key)"
+            @click="selectTab(t.key)"
           >
-            {{ tab.label }}
+            {{ t.label }}
             <span
               v-if="ready"
               :class="[
                 'rounded-full px-2 py-0.5 text-[11px]',
-                tab.key === applied.tab ? 'bg-blue-50 text-blue-600' : 'bg-slate-200 text-slate-500',
+                t.key === tab ? 'bg-blue-50 text-blue-600' : 'bg-slate-200 text-slate-500',
               ]"
             >
-              {{ counts[tab.key] }}
+              {{ counts[t.key] }}
             </span>
+            <span v-else-if="loading" class="h-5 w-7 animate-pulse rounded-full bg-slate-200" aria-hidden="true"></span>
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center gap-3 px-6 py-4" @submit.prevent="applyFilters">
-          <label
-            class="flex h-10 min-w-[240px] flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-100 px-3 focus-within:ring-2 focus-within:ring-blue-200"
-          >
-            <AppIcon name="search" class="h-5 w-5 shrink-0 text-slate-400" />
-            <input
-              ref="searchInput"
-              v-model="draftSearch"
-              type="text"
-              placeholder="Cari nama / NIS siswa…"
-              class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium leading-[14px] text-slate-500">
-              Ctrl K
-            </span>
-          </label>
-
-          <SelectDropdown
-            v-model="draftJurusan"
-            class="w-[220px]"
-            icon="building"
-            placeholder="Semua Program Studi"
-            :options="jurusanItems"
-          />
-
-          <SelectDropdown
-            v-model="draftGuru"
-            class="w-[220px]"
-            icon="user-check"
-            placeholder="Semua Pembimbing"
-            searchable
-            :options="guruItems"
-          />
-
-          <button
-            type="submit"
-            class="flex h-10 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm font-semibold text-blue-600 hover:bg-blue-100"
-          >
-            <AppIcon name="filter" class="h-5 w-5" />
-            Terapkan
-          </button>
-        </form>
-
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
-          <span
-            v-for="col in columns"
-            :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
-          >
-            {{ col.label }}
-          </span>
-        </div>
-
-        <SkeletonRows v-if="loading" :rows="8" :cols="4" />
-        <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <div v-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button
             type="button"
@@ -119,13 +66,25 @@
             Coba lagi
           </button>
         </div>
-        <p v-else-if="!pageRows.length" class="px-6 py-12 text-center text-sm text-slate-400">
-          Tidak ada siswa yang cocok.
-        </p>
 
-        <div v-else class="divide-y divide-slate-100">
-          <div v-for="row in pageRows" :key="row.id" class="flex items-center gap-4 px-6 py-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+        <BaseTable
+          v-else
+          v-model:page="page"
+          v-model:search="search"
+          bare
+          :columns="columns"
+          :data="tabRows"
+          :per-page="PAGE_SIZE"
+          apply-button
+          :loading="loading"
+          :filters="filters"
+          :filter-state="filterState"
+          :search-keys="['name', 'nis']"
+          search-placeholder="Cari nama / NIS siswa…"
+          entity="siswa"
+        >
+          <template #cell-name="{ row }">
+            <div class="flex min-w-0 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
               </span>
@@ -136,51 +95,45 @@
                 </span>
               </div>
             </div>
+          </template>
 
-            <span class="w-[100px] truncate text-xs leading-[18px] text-slate-600">{{ row.jurusan }}</span>
-            <span class="w-[170px] truncate text-xs leading-[18px] text-slate-600">{{ row.tempat }}</span>
-            <span class="w-[150px] truncate text-xs leading-[18px] text-slate-600">{{ row.pembimbing }}</span>
+          <template #cell-status="{ row }">
+            <span
+              :class="['inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PKL_STATUS[row.status].box]"
+            >
+              <span :class="['h-1.5 w-1.5 rounded-full', PKL_STATUS[row.status].dot]" />
+              {{ PKL_STATUS[row.status].label }}
+            </span>
+          </template>
 
-            <div class="w-[150px]">
-              <span
-                :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PKL_STATUS[row.status].box]"
-              >
-                <span :class="['h-1.5 w-1.5 rounded-full', PKL_STATUS[row.status].dot]" />
-                {{ PKL_STATUS[row.status].label }}
-              </span>
-            </div>
-
-            <div class="flex w-[148px] justify-end gap-2">
-              <router-link
-                :to="`/admin/master-data/siswa/${row.id}`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Lihat detail"
-                title="Lihat detail"
-              >
-                <AppIcon name="eye" class="h-5 w-5" />
-              </router-link>
-              <router-link
-                :to="`/admin/master-data/siswa/${row.id}/edit`"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Edit siswa"
-                title="Edit siswa"
-              >
-                <AppIcon name="pencil" class="h-5 w-5" />
-              </router-link>
-              <button
-                type="button"
-                class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600"
-                aria-label="Hapus siswa"
-                title="Hapus siswa"
-                @click="toDelete = row"
-              >
-                <AppIcon name="trash" class="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="siswa" />
+          <template #actions="{ row }">
+            <router-link
+              :to="`/admin/master-data/siswa/${row.id}`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Lihat detail"
+              title="Lihat detail"
+            >
+              <AppIcon name="eye" class="h-5 w-5" />
+            </router-link>
+            <router-link
+              :to="`/admin/master-data/siswa/${row.id}/edit`"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              aria-label="Edit siswa"
+              title="Edit siswa"
+            >
+              <AppIcon name="pencil" class="h-5 w-5" />
+            </router-link>
+            <button
+              type="button"
+              class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600"
+              aria-label="Hapus siswa"
+              title="Hapus siswa"
+              @click="toDelete = row"
+            >
+              <AppIcon name="trash" class="h-5 w-5" />
+            </button>
+          </template>
+        </BaseTable>
       </section>
     </div>
 
@@ -204,11 +157,8 @@ import PageHeader from '../../components/PageHeader.vue'
 import CardHeader from '../../components/CardHeader.vue'
 import StatCard from '../../components/StatCard.vue'
 import AppIcon from '../../components/AppIcon.vue'
-import DataPagination from '../../components/DataPagination.vue'
-import SkeletonRows from '../../components/SkeletonRows.vue'
+import BaseTable from '../../components/BaseTable.vue'
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
-import SelectDropdown from '../../components/SelectDropdown.vue'
-import { useSearchShortcut } from '../../composables/useSearchShortcut'
 import { useListState } from '../../composables/useListState'
 
 const toast = useToastStore()
@@ -221,13 +171,13 @@ const tabs = [
   { key: 'selesai', label: 'Selesai' },
 ]
 
+// Kolom tabel; urutan, pencarian, filter, dan pagination ditangani BaseTable
 const columns = [
-  { label: 'Siswa', width: 'flex-1', align: '' },
-  { label: 'Program Studi', width: 'w-[100px]', align: '' },
-  { label: 'Tempat PKL', width: 'w-[170px]', align: '' },
-  { label: 'Pembimbing', width: 'w-[150px]', align: '' },
-  { label: 'Status', width: 'w-[150px]', align: '' },
-  { label: 'Aksi', width: 'w-[148px]', align: 'text-right' },
+  { key: 'name', label: 'Siswa' },
+  { key: 'jurusan', label: 'Program Studi', width: 'w-[176px]', cellClass: 'sm:truncate' },
+  { key: 'tempat', label: 'Tempat PKL', width: 'w-[176px]', cellClass: 'sm:truncate' },
+  { key: 'pembimbing', label: 'Pembimbing', width: 'w-[176px]', cellClass: 'sm:truncate' },
+  { key: 'status', label: 'Status', width: 'w-[196px]', sortValue: (r) => PKL_STATUS[r.status].label },
 ]
 
 const siswa = ref([])
@@ -236,26 +186,20 @@ const pengajuanPending = ref(null)
 const loading = ref(true)
 const error = ref('')
 const page = ref(1)
-
-const draftSearch = ref('')
-const draftJurusan = ref('')
-const draftGuru = ref('')
-const applied = reactive({ search: '', jurusan: '', guru: '', tab: 'semua' })
+const search = ref('')
+const tab = ref('semua')
+const filterState = reactive({ jurusanId: '', guruId: '' })
 
 const toDelete = ref(null)
 const deleting = ref(false)
-const searchInput = ref(null)
-useSearchShortcut(searchInput)
 
-// Kembali dari detail/edit -> halaman, tab, pencarian, dan filter daftar dipulihkan
 useListState('siswa', ['/admin/master-data/siswa/'], {
-  snapshot: () => ({ page: page.value, applied: { ...applied } }),
+  snapshot: () => ({ page: page.value, tab: tab.value, search: search.value, filter: { ...filterState } }),
   restore: (s) => {
     page.value = s.page
-    Object.assign(applied, s.applied)
-    draftSearch.value = s.applied.search
-    draftJurusan.value = s.applied.jurusan
-    draftGuru.value = s.applied.guru
+    tab.value = s.tab ?? 'semua'
+    search.value = s.search ?? ''
+    Object.assign(filterState, s.filter ?? {})
   },
 })
 
@@ -279,6 +223,8 @@ const all = computed(() =>
   })
 )
 
+const tabRows = computed(() => (tab.value === 'semua' ? all.value : all.value.filter((r) => r.status === tab.value)))
+
 const counts = computed(() => ({
   semua: all.value.length,
   aktif: all.value.filter((r) => r.status === 'aktif').length,
@@ -298,14 +244,20 @@ const guruOptions = computed(() => {
   return [...map].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label))
 })
 
-const jurusanItems = computed(() => [
-  { value: '', label: 'Semua Program Studi' },
-  ...jurusanOptions.value.map((j) => ({ value: String(j.id), label: j.label })),
-])
-
-const guruItems = computed(() => [
-  { value: '', label: 'Semua Pembimbing' },
-  ...guruOptions.value.map((g) => ({ value: String(g.id), label: g.label })),
+const filters = computed(() => [
+  {
+    key: 'jurusanId',
+    label: 'Program Studi',
+    icon: 'building',
+    options: jurusanOptions.value.map((j) => ({ value: j.id, label: j.label })),
+  },
+  {
+    key: 'guruId',
+    label: 'Pembimbing',
+    icon: 'user-check',
+    searchable: true,
+    options: guruOptions.value.map((g) => ({ value: g.id, label: g.label })),
+  },
 ])
 
 const stats = computed(() => {
@@ -326,22 +278,6 @@ const stats = computed(() => {
   ]
 })
 
-const filtered = computed(() => {
-  const q = applied.search.toLowerCase()
-  return all.value.filter(
-    (r) =>
-      (applied.tab === 'semua' || r.status === applied.tab) &&
-      (!applied.jurusan || String(r.jurusanId) === applied.jurusan) &&
-      (!applied.guru || String(r.guruId) === applied.guru) &&
-      (!q || r.name.toLowerCase().includes(q) || String(r.nis).toLowerCase().includes(q))
-  )
-})
-
-const lastPage = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
-const pageRows = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-const from = computed(() => (filtered.value.length ? (page.value - 1) * PAGE_SIZE + 1 : 0))
-const to = computed(() => Math.min(page.value * PAGE_SIZE, filtered.value.length))
-
 async function load() {
   loading.value = true
   error.value = ''
@@ -359,7 +295,6 @@ async function load() {
 
 async function loadPengajuan() {
   try {
-    // Bukan dari /api/dashboard/admin: ringkasan itu di-cache BE 10 menit sehingga angkanya bisa basi
     const { data } = await api.get('/api/pengajuan-pkl', { params: { status: 'pending' } })
     pengajuanPending.value = data.meta?.total ?? null
   } catch {
@@ -367,15 +302,8 @@ async function loadPengajuan() {
   }
 }
 
-function applyFilters() {
-  applied.search = draftSearch.value.trim()
-  applied.jurusan = draftJurusan.value
-  applied.guru = draftGuru.value
-  page.value = 1
-}
-
 function selectTab(key) {
-  applied.tab = key
+  tab.value = key
   page.value = 1
 }
 
@@ -387,7 +315,6 @@ async function confirmDelete() {
     const { data } = await api.delete(`/api/siswa/${target.id}`)
     toast.show(data.message || 'Siswa berhasil dihapus.')
     siswa.value = siswa.value.filter((s) => s.id !== target.id)
-    if (page.value > lastPage.value) page.value = lastPage.value
   } catch (err) {
     const status = err.response?.status
     if (status && status < 500 && ![401, 403, 419, 429].includes(status)) {
