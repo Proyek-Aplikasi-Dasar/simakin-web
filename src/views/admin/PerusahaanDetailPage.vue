@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Data Master', to: backTo }, { label: 'Detail Perusahaan' }]"
       title="Detail Perusahaan"
@@ -31,7 +31,7 @@
           <span class="absolute left-[1010px] top-2.5 h-[120px] w-[120px] rounded-full bg-blue-700"></span>
         </div>
 
-        <div class="relative flex items-end gap-6 px-6 pb-5 pt-7">
+        <div class="relative flex flex-col items-start gap-3 px-4 pb-5 pt-7 sm:flex-row sm:items-end sm:gap-6 sm:px-6">
           <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white p-1">
             <div class="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="building" class="h-9 w-9" />
@@ -39,12 +39,12 @@
           </div>
 
           <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ data.nama }}</h2>
+            <h2 class="break-words text-lg font-semibold leading-[26px] text-slate-900">{{ data.nama }}</h2>
             <p class="text-xs leading-[18px] text-slate-500">{{ data.alamat || '—' }}</p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
           <InfoItem icon="smartphone" label="Nomor Telepon" :value="data.telp" />
           <InfoItem icon="mail" label="Email" :value="data.email" />
           <InfoItem icon="user" label="Pimpinan" :value="data.pimpinan" />
@@ -75,7 +75,7 @@
           </FormCard>
 
           <FormCard title="Siswa PKL" description="Siswa yang ditempatkan di perusahaan ini.">
-            <div class="-mx-6 -mb-6 -mt-5 overflow-x-auto">
+            <div class="-mx-4 -mb-5 overflow-x-auto sm:-mx-6 sm:-mb-6">
               <table class="w-full text-left text-sm">
                 <thead class="bg-slate-100">
                   <tr>

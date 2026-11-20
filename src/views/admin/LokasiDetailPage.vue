@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Lokasi & Penempatan', to: backTo }, { label: 'Detail Lokasi' }]"
       title="Detail Lokasi PKL"
@@ -36,7 +36,7 @@
           <span class="absolute left-[1010px] top-2.5 h-[120px] w-[120px] rounded-full bg-blue-700"></span>
         </div>
 
-        <div class="relative flex items-end gap-6 px-6 pb-5 pt-7">
+        <div class="relative flex flex-col items-start gap-3 px-4 pb-5 pt-7 sm:flex-row sm:items-end sm:gap-6 sm:px-6">
           <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white p-1">
             <div class="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="building" class="h-9 w-9" />
@@ -44,13 +44,13 @@
           </div>
 
           <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ data.nama }}</h2>
+            <h2 class="break-words text-lg font-semibold leading-[26px] text-slate-900">{{ data.nama }}</h2>
             <p class="text-xs leading-[18px] text-slate-500">{{ [data.bidang_usaha, data.alamat].filter(Boolean).join(' · ') || '—' }}</p>
           </div>
 
           <span
             :class="[
-              'inline-flex items-center gap-1.5 self-end rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
+              'inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4 sm:self-end',
               data.is_active === false ? 'border-slate-200 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700',
             ]"
           >
@@ -59,7 +59,7 @@
           </span>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
           <InfoItem icon="user" label="Pembimbing Industri" :value="data.pembimbing_industri" />
           <InfoItem icon="user-check" label="Guru Pembimbing" :value="guruText" />
           <InfoItem icon="briefcase" label="Kuota" :value="kuotaText" :hint="sisaText" />
@@ -97,97 +97,68 @@
               </router-link>
             </template>
 
-            <div class="-mx-6 -mb-6 -mt-5 overflow-x-auto">
-              <table class="w-full text-left text-sm">
-                <thead class="bg-slate-100">
-                  <tr>
-                    <th
-                      v-for="h in ['Siswa', 'Status', 'Presensi Hari Ini']"
-                      :key="h"
-                      class="px-6 py-2.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-slate-500"
+            <div class="-mx-4 -mb-5 sm:-mx-6 sm:-mb-6">
+              <div class="hidden items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5 sm:flex">
+                <span class="flex-1 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Siswa</span>
+                <span class="w-[140px] shrink-0 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Presensi Hari Ini</span>
+                <span class="w-[90px] shrink-0 text-right text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500">Aksi</span>
+              </div>
+
+              <p v-if="!aktifList.length" class="border-t border-slate-100 px-6 py-10 text-center text-xs text-slate-400">
+                Belum ada siswa yang ditempatkan di lokasi ini.
+              </p>
+
+              <div v-for="row in aktifList" :key="row.id" class="flex items-center gap-3 border-t border-slate-100 px-4 py-3 sm:gap-4 sm:px-6">
+                <div class="flex min-w-0 flex-1 items-center gap-2.5">
+                  <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                    <AppIcon name="user" class="h-5 w-5" />
+                  </span>
+                  <div class="flex min-w-0 flex-col">
+                    <span class="truncate text-xs font-semibold leading-[18px] text-slate-900">{{ row.siswa?.nama ?? '—' }}</span>
+                    <span class="truncate text-[11px] leading-[14px] text-slate-500">NIS {{ row.siswa?.nis ?? '—' }}</span>
+                    <span
+                      v-if="absenOf(row)"
+                      :class="['mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4 sm:hidden', absenOf(row).box]"
                     >
-                      {{ h }}
-                    </th>
-                    <th class="px-6 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.6px] text-slate-500">
-                      Aksi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="!penempatan.length">
-                    <td colspan="4" class="px-6 py-10 text-center text-xs text-slate-400">
-                      Belum ada siswa yang ditempatkan di lokasi ini.
-                    </td>
-                  </tr>
-                  <tr v-for="row in penempatan" :key="row.id" class="border-t border-slate-100">
-                    <td class="px-6 py-3">
-                      <p class="text-xs font-semibold text-slate-900">{{ row.siswa?.nama ?? '—' }}</p>
-                      <p class="text-[11px] text-slate-500">NIS {{ row.siswa?.nis ?? '—' }}</p>
-                    </td>
-                    <td class="px-6 py-3">
-                      <span
-                        :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', LOKASI_BADGE[row.status].box]"
-                      >
-                        <span :class="['h-1.5 w-1.5 rounded-full', LOKASI_BADGE[row.status].dot]" />
-                        {{ LOKASI_BADGE[row.status].label }}
-                      </span>
-                    </td>
-                    <td class="px-6 py-3">
-                      <span
-                        v-if="absenOf(row)"
-                        :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', absenOf(row).box]"
-                      >
-                        <span :class="['h-1.5 w-1.5 rounded-full', absenOf(row).dot]" />
-                        {{ absenOf(row).label }}
-                      </span>
-                      <span v-else class="text-xs text-slate-400">{{ row.status === 'active' ? 'Belum presensi' : '—' }}</span>
-                    </td>
-                    <td class="px-6 py-3">
-                      <div class="flex items-center justify-end gap-1.5">
-                        <button
-                          v-for="n in LOKASI_NEXT[row.status]"
-                          :key="n.status"
-                          type="button"
-                          :disabled="busyId === row.id"
-                          :class="[
-                            'rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50',
-                            n.status === 'cancelled' ? 'text-red-600 hover:bg-red-50' : 'text-blue-600 hover:bg-blue-50',
-                          ]"
-                          @click="onAction(row, n)"
-                        >
-                          {{ n.label }}
-                        </button>
-                        <router-link
-                          v-if="row.siswa?.id"
-                          :to="`/admin/master-data/siswa/${row.siswa.id}`"
-                          class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
-                          aria-label="Lihat siswa"
-                          title="Lihat detail siswa"
-                        >
-                          <AppIcon name="eye" class="h-4 w-4" />
-                        </router-link>
-                        <router-link
-                          :to="`/admin/lokasi-penempatan/penempatan/${row.id}/edit?from=detail`"
-                          class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
-                          aria-label="Edit penempatan"
-                          title="Edit penempatan"
-                        >
-                          <AppIcon name="pencil" class="h-4 w-4" />
-                        </router-link>
-                        <button
-                          type="button"
-                          class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600"
-                          aria-label="Hapus penempatan"
-                          title="Hapus penempatan"
-                          @click="toDelete = row"
-                        >
-                          <AppIcon name="trash" class="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                      <span :class="['h-1.5 w-1.5 rounded-full', absenOf(row).dot]" />
+                      {{ absenOf(row).label }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="hidden w-[140px] shrink-0 sm:block">
+                  <span
+                    v-if="absenOf(row)"
+                    :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', absenOf(row).box]"
+                  >
+                    <span :class="['h-1.5 w-1.5 rounded-full', absenOf(row).dot]" />
+                    {{ absenOf(row).label }}
+                  </span>
+                  <span v-else class="text-xs text-slate-400">Belum presensi</span>
+                </div>
+
+                <div class="flex shrink-0 items-center justify-end gap-2.5 sm:w-[90px]">
+                  <router-link
+                    v-if="row.siswa?.id"
+                    :to="`/admin/master-data/siswa/${row.siswa.id}`"
+                    class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    aria-label="Lihat siswa"
+                    title="Lihat detail siswa"
+                  >
+                    <AppIcon name="eye" class="h-5 w-5" />
+                  </router-link>
+                  <button
+                    type="button"
+                    :disabled="busyId === row.id || !LOKASI_NEXT[row.status]?.some((n) => n.status === 'cancelled')"
+                    class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-600"
+                    aria-label="Lepas siswa dari lokasi"
+                    title="Lepas siswa dari lokasi"
+                    @click="toCancel = row"
+                  >
+                    <AppIcon name="user-minus" class="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
             </div>
           </FormCard>
         </div>
@@ -248,7 +219,7 @@ import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import MapView from '../../components/MapView.vue'
 import api, { getErrorMessage } from '../../services/api'
 import { fetchAllPages, formatDate, toIso, ABSEN_STATUS } from '../../utils/siswa'
-import { LOKASI_BADGE, LOKASI_NEXT, MEMAKAI_KUOTA, terisiOf } from '../../utils/lokasi'
+import { LOKASI_NEXT, MEMAKAI_KUOTA, terisiOf } from '../../utils/lokasi'
 import { useToastStore } from '../../stores/toast'
 
 const props = defineProps({

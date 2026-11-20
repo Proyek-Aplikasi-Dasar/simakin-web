@@ -109,7 +109,7 @@
             <span class="hidden h-3 w-[140px] animate-pulse rounded bg-slate-200 sm:block"></span>
             <span class="hidden h-6 w-[90px] animate-pulse rounded-full bg-slate-100 sm:block"></span>
             <div class="flex shrink-0 justify-end gap-2 sm:w-[140px]">
-              <span v-for="b in 3" :key="b" class="h-10 w-10 animate-pulse rounded-xl bg-slate-100 max-sm:last:hidden max-sm:[&:nth-child(2)]:hidden"></span>
+              <span v-for="b in 2" :key="b" class="h-10 w-10 animate-pulse rounded-xl bg-slate-100 max-sm:last:hidden"></span>
             </div>
           </div>
         </div>

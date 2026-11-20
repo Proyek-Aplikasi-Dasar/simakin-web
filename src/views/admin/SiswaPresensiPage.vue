@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Siswa PKL', to: backTo }, { label: 'Riwayat Presensi' }]"
       title="Riwayat Presensi Siswa"
@@ -25,11 +25,11 @@
 
     <div class="flex flex-col gap-6">
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <div class="h-[70px] bg-blue-600"></div>
-        <div class="flex items-end justify-between gap-4 px-6 pb-5">
-          <div class="flex items-end gap-5">
-            <span class="-mt-9 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
-              <AppIcon name="user" class="h-9 w-9" />
+        <div class="h-[86px] bg-blue-600"></div>
+        <div class="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:px-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
+            <span class="-mt-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
+              <AppIcon name="user" class="h-10 w-10" />
             </span>
             <div class="pb-1">
               <h2 class="text-xl font-bold leading-7 tracking-[-0.02em] text-slate-900">{{ siswa?.user?.name ?? '…' }}</h2>
@@ -38,7 +38,7 @@
           </div>
           <span
             v-if="rekap.persen != null"
-            class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-[3px] text-xs font-semibold leading-4 text-emerald-700"
+            class="inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-[3px] text-xs font-semibold leading-4 text-emerald-700"
           >
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-700" />
             Kehadiran {{ rekap.persen }}%
@@ -52,7 +52,7 @@
           :description="`Periode ${formatDate(applied.from, true)} – ${formatDate(applied.to, true)} · ${rekap.efektif} hari efektif.`"
         />
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
+        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
           <button
             v-for="t in tabs"
             :key="t.key"
@@ -75,7 +75,7 @@
           </button>
         </div>
 
-        <form class="flex flex-wrap items-center justify-between gap-3 px-6 py-4" @submit.prevent="applyRange">
+        <form class="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6" @submit.prevent="applyRange">
           <div class="relative" @keydown.esc="showRange = false">
             <button
               type="button"
@@ -89,7 +89,7 @@
                 <path d="M5 8l5 5 5-5" />
               </svg>
             </button>
-            <div v-if="showRange" class="absolute left-0 top-12 z-20 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+            <div v-if="showRange" class="absolute left-0 top-12 z-20 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-lg sm:flex-row sm:items-center">
               <label class="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 focus-within:ring-2 focus-within:ring-blue-200">
                 <AppIcon name="calendar" class="h-4 w-4 text-slate-400" />
                 <DatePicker v-model="range.from" :max="range.to" bare />
@@ -110,11 +110,13 @@
           </button>
         </form>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
+        <div class="overflow-x-auto">
+        <div class="min-w-[820px]">
+        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-4 py-2.5 sm:px-6">
           <span
             v-for="col in columns"
             :key="col.label"
-            :class="[col.width, col.align, 'text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500']"
+            :class="[col.width, col.align, 'shrink-0 text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500', col.width === 'flex-1' && '!shrink']"
           >
             {{ col.label }}
           </span>
@@ -132,7 +134,7 @@
         </p>
 
         <div v-else class="divide-y divide-slate-100">
-          <div v-for="r in pageRows" :key="r.id" class="flex items-center gap-4 px-6 py-3.5">
+          <div v-for="r in pageRows" :key="r.id" class="flex items-center gap-4 px-4 py-3.5 sm:px-6">
             <span class="w-[130px] text-xs leading-[18px] text-slate-900">{{ formatDate(r.tanggal, true) }}</span>
             <span class="w-[90px] text-xs leading-[18px] text-slate-600">{{ hariName(r.tanggal) }}</span>
             <span class="w-[110px] text-xs leading-[18px] text-slate-600">{{ jamOnly(r.jam_masuk) }}</span>
@@ -161,6 +163,8 @@
               </button>
             </div>
           </div>
+        </div>
+        </div>
         </div>
 
         <DataPagination v-model:page="page" :last-page="lastPage" :total="filtered.length" :from="from" :to="to" item-label="hari" empty-label="data" />

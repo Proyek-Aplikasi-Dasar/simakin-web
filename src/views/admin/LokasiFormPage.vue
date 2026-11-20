@@ -31,55 +31,17 @@
       <FormCard title="Form Penempatan" description="Penempatan langsung tanpa pengajuan siswa.">
         <div class="flex flex-col gap-5">
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div>
-              <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Pilih Siswa</label>
-
-              <div
-                v-if="siswa"
-                class="flex h-10 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3"
-              >
-                <p class="min-w-0 truncate text-xs text-slate-900">{{ siswa.nama }} · {{ siswa.nis }}</p>
-                <button type="button" class="shrink-0 text-xs font-semibold text-blue-600 hover:underline" @click="siswa = null">
-                  Ganti
-                </button>
-              </div>
-
-              <div v-else class="relative">
-                <label
-                  :class="[
-                    'flex h-10 items-center gap-2 rounded-xl border bg-white px-3 focus-within:ring-2 focus-within:ring-blue-100',
-                    local.siswa ? 'border-red-300' : 'border-slate-200 focus-within:border-blue-600',
-                  ]"
-                >
-                  <input
-                    v-model="q"
-                    type="text"
-                    placeholder="Pilih siswa"
-                    class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400"
-                  />
-                  <svg class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-                </label>
-
-                <ul
-                  v-if="q.trim().length >= 2"
-                  class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-                >
-                  <li v-if="searching" class="px-3 py-2 text-xs text-slate-400">Mencari…</li>
-                  <li v-else-if="!results.length" class="px-3 py-2 text-xs text-slate-400">Siswa tidak ditemukan.</li>
-                  <li v-for="s in results" :key="s.id">
-                    <button type="button" class="block w-full px-3 py-2 text-left hover:bg-slate-50" @click="pick(s)">
-                      <span class="block text-xs font-semibold text-slate-900">{{ s.user?.name ?? '—' }}</span>
-                      <span class="block text-[11px] text-slate-500">NIS {{ s.nis }}<template v-if="s.kelas"> · {{ s.kelas }}</template></span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-
-              <p v-if="local.siswa || fieldErrors.siswa_id" class="mt-1 text-xs text-red-600">
-                {{ local.siswa || fieldErrors.siswa_id }}
-              </p>
-              <p v-else class="mt-1 text-[11px] text-slate-500">Hanya siswa yang belum ditempatkan.</p>
-            </div>
+            <FormField
+              id="siswa"
+              :model-value="form.siswa_id"
+              label="Pilih Siswa"
+              placeholder="Pilih siswa"
+              searchable
+              :options="siswaOptions"
+              :hint="isEdit ? 'Pilih untuk berpindah ke penempatan siswa lain di perusahaan ini.' : 'Hanya siswa yang belum ditempatkan.'"
+              :error="local.siswa || fieldErrors.siswa_id || ''"
+              @update:model-value="onPilihSiswa"
+            />
 
             <FormField
               id="perusahaan"
@@ -108,10 +70,10 @@
               <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Pembimbing Industri</label>
               <input
                 :value="perusahaan?.pembimbing_industri ?? ''"
-                disabled
-                title="Belum ada field di endpoint penempatan. Ubah lewat Edit Lokasi pada data perusahaan."
+                readonly
+                title="Terisi otomatis dari data perusahaan. Ubah lewat Edit Perusahaan."
                 placeholder="Masukkan pembimbing industri"
-                class="h-10 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-600 outline-none placeholder:text-slate-400"
+                class="h-10 w-full cursor-default rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -159,10 +121,10 @@
             <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Koordinat</label>
             <input
               :value="koordinatText"
-              disabled
-              title="Belum ada field di endpoint penempatan. Koordinat diambil dari data perusahaan."
+              readonly
+              title="Terisi otomatis dari data perusahaan."
               placeholder="Masukkan koordinat"
-              class="h-10 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-600 outline-none placeholder:text-slate-400"
+              class="h-10 w-full cursor-default rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400"
             />
             <p class="mt-1 text-[11px] text-slate-500">Koordinat lokasi perusahaan di peta.</p>
           </div>
@@ -181,39 +143,53 @@
         </template>
       </FormCard>
 
-      <FormCard title="Ringkasan Siswa">
-        <div class="flex flex-col gap-4">
-          <div class="flex items-center gap-3">
+      <FormCard title="Ringkasan Siswa" :description="ringkasanDesc">
+        <p v-if="!daftarSiswa.length" class="text-xs text-slate-500">
+          {{ form.perusahaan_id ? 'Belum ada siswa ditempatkan di perusahaan ini.' : 'Pilih perusahaan untuk melihat siswa yang terdaftar.' }}
+        </p>
+        <ul v-else class="flex flex-col gap-2">
+          <li
+            v-for="s in daftarSiswa"
+            :key="s.key"
+            :class="['flex items-center gap-3 rounded-xl p-2', s.current ? 'bg-blue-50' : '']"
+          >
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-5 w-5" />
             </span>
-            <div class="min-w-0">
-              <p class="truncate text-xs font-semibold text-slate-900">{{ siswa ? siswa.nama : 'Belum ada siswa dipilih' }}</p>
-              <p class="truncate text-[11px] text-slate-500">
-                {{ siswa ? `NIS ${siswa.nis}${siswa.kelas ? ' · ' + siswa.kelas : ''}` : 'Pilih siswa untuk melihat ringkasan' }}
-              </p>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-xs font-semibold text-slate-900">{{ s.nama }}</p>
+              <p class="truncate text-[11px] text-slate-500">NIS {{ s.nis }}<template v-if="s.kelas"> · {{ s.kelas }}</template></p>
             </div>
-          </div>
-          <InfoItem icon="building" label="Jurusan" :value="jurusanNama" />
-          <InfoItem icon="file-text" label="Pengajuan" :value="pengajuanText" hint="Penempatan oleh admin" />
-        </div>
+            <span
+              v-if="s.status"
+              :class="['inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-[2px] text-[11px] font-semibold leading-4', LOKASI_BADGE[s.status].box]"
+            >
+              <span :class="['h-1.5 w-1.5 rounded-full', LOKASI_BADGE[s.status].dot]" />
+              {{ LOKASI_BADGE[s.status].label }}
+            </span>
+            <span
+              v-else
+              class="inline-flex shrink-0 items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-[2px] text-[11px] font-semibold leading-4 text-blue-700"
+            >
+              Akan ditambahkan
+            </span>
+          </li>
+        </ul>
       </FormCard>
     </form>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { getErrorMessage } from '../../services/api'
 import { fetchAllPages } from '../../utils/siswa'
-import { terisiOf } from '../../utils/lokasi'
-import { PENGAJUAN_STATUS } from '../../utils/pengajuan'
+import { terisiOf, MEMAKAI_KUOTA, LOKASI_BADGE } from '../../utils/lokasi'
 import { useToastStore } from '../../stores/toast'
 import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
 import FormField from '../../components/FormField.vue'
-import InfoItem from '../../components/InfoItem.vue'
 import MapView from '../../components/MapView.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import PageSkeleton from '../../components/PageSkeleton.vue'
@@ -233,15 +209,17 @@ const fromDetail = route.query.from === 'detail'
 const backTo = ref(fromDetail && preselect ? `${LIST_PATH}/${preselect}` : LIST_PATH)
 
 const form = reactive({
+  siswa_id: '',
   perusahaan_id: preselect,
   guru_id: '',
   gelombang_id: '',
   tanggal_mulai: '',
   tanggal_selesai: '',
 })
-const siswa = ref(null)
 const needGelombang = ref(false)
-let origSiswaId = null
+const origSiswaId = ref('')
+const siswaAll = ref([])
+const siswaPlaced = ref(new Set())
 const options = reactive({ perusahaan: [], guru: [], gelombang: [] })
 
 const loadingData = ref(true)
@@ -250,17 +228,12 @@ const saving = ref(false)
 const perusahaanHint = ref('Sisa kuota tampil setelah perusahaan dipilih.')
 
 const perusahaan = ref(null)
-const jurusanNama = ref('')
-const pengajuanText = ref('')
+// Semua penempatan di perusahaan yang sedang dipilih di form, sumber Ringkasan Siswa
+const penempatanPerusahaan = ref([])
 
 const local = reactive({})
 const fieldErrors = reactive({})
 
-const q = ref('')
-const results = ref([])
-const searching = ref(false)
-let timer = null
-let seq = 0
 let pseq = 0
 
 const point = computed(() => {
@@ -271,60 +244,81 @@ const point = computed(() => {
 })
 const koordinatText = computed(() => (point.value ? `${point.value.lat}, ${point.value.lng}` : ''))
 
-watch(q, (val) => {
-  clearTimeout(timer)
-  const term = val.trim()
-  if (term.length < 2) {
-    results.value = []
-    return
+const siswaMap = computed(() => new Map(siswaAll.value.map((s) => [String(s.id), s])))
+
+// Penempatan lain di perusahaan yang sama (mode edit), sumber dropdown untuk berpindah antar siswa
+const siblings = ref([])
+
+// Mode tambah: siswa yang belum ditempatkan.
+// Mode edit: hanya siswa yang sudah punya penempatan di perusahaan ini, dipakai untuk berpindah ke penempatan siswa lain.
+const siswaOptions = computed(() => {
+  if (!isEdit) {
+    return siswaAll.value
+      .filter((s) => !siswaPlaced.value.has(s.id))
+      .map((s) => ({ value: String(s.id), label: `${s.user?.name ?? '—'} · ${s.nis}` }))
   }
-  timer = setTimeout(async () => {
-    const mine = ++seq
-    searching.value = true
-    try {
-      const { data } = await api.get('/api/siswa', { params: { search: term } })
-      if (mine === seq) results.value = data.data ?? []
-    } catch {
-      if (mine === seq) results.value = []
-    } finally {
-      if (mine === seq) searching.value = false
-    }
-  }, 350)
+  const opts = siblings.value
+    .filter((l) => l.siswa?.id && (MEMAKAI_KUOTA.includes(l.status) || String(l.id) === String(props.id)))
+    .map((l) => ({ value: String(l.siswa.id), label: `${l.siswa.nama ?? '—'} · ${l.siswa.nis ?? '—'}` }))
+  const cur = siswaMap.value.get(origSiswaId.value)
+  if (cur && !opts.some((o) => o.value === origSiswaId.value)) {
+    opts.unshift({ value: origSiswaId.value, label: `${cur.user?.name ?? '—'} · ${cur.nis}` })
+  }
+  return opts
 })
 
-function pick(s) {
-  siswa.value = { id: s.id, nama: s.user?.name ?? '—', nis: s.nis, kelas: s.kelas }
-  q.value = ''
-  results.value = []
-  delete local.siswa
-  delete fieldErrors.siswa_id
+// Mode edit: memilih siswa lain = pindah ke form edit penempatan siswa itu (query seperti ?from=detail dipertahankan)
+function onPilihSiswa(value) {
+  if (!isEdit) {
+    form.siswa_id = value
+    return
+  }
+  if (!value || String(value) === origSiswaId.value) return
+  const target = siblings.value.find((l) => String(l.siswa?.id) === String(value) && MEMAKAI_KUOTA.includes(l.status))
+  if (target) router.replace({ path: `${LIST_PATH}/penempatan/${target.id}/edit`, query: route.query })
 }
 
+const siswa = computed(() => {
+  const s = siswaMap.value.get(String(form.siswa_id))
+  return s ? { nama: s.user?.name ?? '—', nis: s.nis, kelas: s.kelas } : null
+})
+
+// Ringkasan Siswa: semua siswa yang terdaftar (menunggu/aktif) di perusahaan yang dipilih, siswa yang sedang dipilih disorot.
+// Kelas diambil dari data siswa; kosong bila tidak ada.
+const daftarSiswa = computed(() => {
+  const rows = penempatanPerusahaan.value
+    .filter((l) => l.siswa?.id && MEMAKAI_KUOTA.includes(l.status))
+    .map((l) => ({
+      key: `l${l.id}`,
+      nama: l.siswa.nama ?? '—',
+      nis: l.siswa.nis ?? '—',
+      kelas: siswaMap.value.get(String(l.siswa.id))?.kelas ?? '',
+      status: l.status,
+      current: String(l.siswa.id) === String(form.siswa_id),
+    }))
+  // Mode tambah: siswa yang dipilih belum punya penempatan di sini, tampilkan di atas sebagai calon
+  if (!isEdit && siswa.value && !rows.some((r) => r.current)) {
+    rows.unshift({ key: 'baru', nama: siswa.value.nama, nis: siswa.value.nis, kelas: siswa.value.kelas ?? '', status: null, current: true })
+  }
+  return rows
+})
+
+const ringkasanDesc = computed(() =>
+  perusahaan.value
+    ? `${daftarSiswa.value.filter((r) => r.status).length} siswa terdaftar di ${perusahaan.value.nama}.`
+    : ''
+)
+
 watch(
-  () => siswa.value?.id,
-  async (sid) => {
-    jurusanNama.value = ''
-    pengajuanText.value = ''
-    if (!sid) return
-    try {
-      const { data } = await api.get(`/api/siswa/${sid}`)
-      const s = data.data
-      jurusanNama.value = s.jurusan?.nama ?? ''
-      if (siswa.value?.id === sid && s.kelas) siswa.value.kelas = s.kelas
-      if (siswa.value?.id === sid && (!isEdit || sid !== origSiswaId)) {
-        form.gelombang_id = s.gelombang?.id ? String(s.gelombang.id) : ''
-        needGelombang.value = !s.gelombang?.id
-      }
-    } catch {
-    }
-    try {
-      const list = await fetchAllPages('/api/pengajuan-pkl', { siswa_id: sid })
-      const nis = siswa.value?.nis
-      const latest = list.filter((p) => p.siswa?.nis === nis).sort((a, b) => b.id - a.id)[0]
-      if (siswa.value?.id === sid) {
-        pengajuanText.value = latest ? PENGAJUAN_STATUS[latest.status]?.label ?? latest.status : 'Belum ada pengajuan'
-      }
-    } catch {
+  () => form.siswa_id,
+  (sid) => {
+    delete local.siswa
+    delete fieldErrors.siswa_id
+    const s = siswaMap.value.get(String(sid))
+    if (!s) return
+    if (!isEdit || String(sid) !== origSiswaId.value) {
+      form.gelombang_id = s.gelombang?.id ? String(s.gelombang.id) : ''
+      needGelombang.value = !s.gelombang?.id
     }
   }
 )
@@ -333,17 +327,21 @@ async function loadPerusahaan() {
   const id = form.perusahaan_id
   const mine = ++pseq
   perusahaan.value = null
+  penempatanPerusahaan.value = []
   if (!id) return
   try {
-    const [p, l] = await Promise.all([
+    const [p, l] = await Promise.allSettled([
       api.get(`/api/perusahaan/${id}`),
       fetchAllPages('/api/lokasi-pkl', { perusahaan_id: id }),
     ])
     if (mine !== pseq) return
-    perusahaan.value = p.data.data
+    if (p.status !== 'fulfilled') return
+    perusahaan.value = p.value.data.data
+    if (l.status !== 'fulfilled') return
+    penempatanPerusahaan.value = l.value
     const kuota = perusahaan.value.kuota
     perusahaanHint.value =
-      kuota == null ? 'Kuota perusahaan tidak dibatasi.' : `Sisa kuota ${Math.max(kuota - terisiOf(l), 0)} siswa.`
+      kuota == null ? 'Kuota perusahaan tidak dibatasi.' : `Sisa kuota ${Math.max(kuota - terisiOf(l.value), 0)} siswa.`
   } catch {
   }
 }
@@ -351,15 +349,21 @@ async function loadPerusahaan() {
 watch(() => form.perusahaan_id, loadPerusahaan)
 
 async function loadOptions() {
-  const [p, g, gel] = await Promise.all([
+  const [p, g, gel, sis, lokasi] = await Promise.all([
     fetchAllPages('/api/perusahaan', isEdit ? {} : { kuota_tersedia: 1 }),
     fetchAllPages('/api/guru'),
     api.get('/api/gelombang'),
+    fetchAllPages('/api/siswa'),
+    fetchAllPages('/api/lokasi-pkl'),
   ])
+  siswaAll.value = sis
+  // Siswa dianggap sudah ditempatkan bila punya penempatan selain dibatalkan (menunggu / aktif / selesai).
+  // BE hanya menolak yang berstatus aktif, jadi penempatan "menunggu" harus dicegah di sini.
+  siswaPlaced.value = new Set(lokasi.filter((l) => l.siswa?.id && l.status !== 'cancelled').map((l) => l.siswa.id))
   options.perusahaan = p.map((x) => ({ value: String(x.id), label: x.nama }))
   options.guru = [
     { value: 'none', label: 'Belum ditentukan' },
-    ...g.map((x) => ({ value: String(x.id), label: `${x.user?.name ?? '—'} (${x.nip})` })),
+    ...g.map((x) => ({ value: String(x.id), label: x.user?.name ?? '—' })),
   ]
   options.gelombang = (gel.data.data ?? []).map((x) => ({ value: String(x.id), label: `${x.nama} — ${x.tahun_ajaran}` }))
 
@@ -372,19 +376,33 @@ async function loadOptions() {
 async function loadPenempatan() {
   const { data } = await api.get(`/api/lokasi-pkl/${props.id}`)
   const l = data.data
-  siswa.value = { id: l.siswa?.id, nama: l.siswa?.nama ?? '—', nis: l.siswa?.nis ?? '—', kelas: '' }
+  origSiswaId.value = l.siswa?.id ? String(l.siswa.id) : ''
+  form.siswa_id = origSiswaId.value
   form.perusahaan_id = l.perusahaan ? String(l.perusahaan.id) : ''
   form.guru_id = l.guru ? String(l.guru.id) : 'none'
   form.gelombang_id = l.gelombang ? String(l.gelombang.id) : ''
-  origSiswaId = l.siswa?.id ?? null
   form.tanggal_mulai = l.tanggal_mulai ?? ''
   form.tanggal_selesai = l.tanggal_selesai ?? ''
   backTo.value = fromDetail && l.perusahaan ? `${LIST_PATH}/${l.perusahaan.id}` : LIST_PATH
+
+  // Daftar siswa di perusahaan ini hanya pelengkap dropdown; gagal memuat tidak boleh memblokir form
+  try {
+    siblings.value = l.perusahaan ? await fetchAllPages('/api/lokasi-pkl', { perusahaan_id: l.perusahaan.id }) : []
+  } catch {
+    siblings.value = []
+  }
 }
 
-onMounted(async () => {
+let optionsLoaded = false
+
+async function init() {
+  loadingData.value = true
+  loadError.value = ''
   try {
-    await Promise.all([loadOptions(), isEdit ? loadPenempatan() : Promise.resolve()])
+    await Promise.all([
+      optionsLoaded ? Promise.resolve() : loadOptions().then(() => (optionsLoaded = true)),
+      isEdit ? loadPenempatan() : Promise.resolve(),
+    ])
     if (form.perusahaan_id && !perusahaan.value) loadPerusahaan()
   } catch (err) {
     loadError.value =
@@ -392,17 +410,31 @@ onMounted(async () => {
   } finally {
     loadingData.value = false
   }
-})
+}
 
-onBeforeUnmount(() => clearTimeout(timer))
+onMounted(init)
+
+// Komponen yang sama dipakai ulang saat berpindah siswa lewat dropdown (hanya :id yang berubah): kosongkan form lalu muat ulang
+watch(
+  () => props.id,
+  (id, old) => {
+    if (!isEdit || !id || id === old) return
+    Object.assign(form, { siswa_id: '', perusahaan_id: '', guru_id: '', gelombang_id: '', tanggal_mulai: '', tanggal_selesai: '' })
+    Object.keys(local).forEach((k) => delete local[k])
+    Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k])
+    needGelombang.value = false
+    perusahaan.value = null
+    init()
+  }
+)
 
 function validate() {
   Object.keys(local).forEach((k) => delete local[k])
-  if (!siswa.value) local.siswa = 'Wajib diisi.'
+  if (!form.siswa_id) local.siswa = 'Wajib diisi.'
   if (!form.perusahaan_id) local.perusahaan = 'Wajib diisi.'
   if (!form.gelombang_id) {
     local.gelombang = 'Wajib diisi.'
-    if (siswa.value) needGelombang.value = true
+    if (form.siswa_id) needGelombang.value = true
   }
   if (form.tanggal_mulai && form.tanggal_selesai && form.tanggal_selesai < form.tanggal_mulai) {
     local.tanggal_selesai = 'Tanggal selesai tidak boleh sebelum tanggal mulai.'
@@ -416,6 +448,7 @@ async function submit() {
   saving.value = true
 
   const payload = {
+    siswa_id: Number(form.siswa_id),
     perusahaan_id: Number(form.perusahaan_id),
     guru_id: !form.guru_id || form.guru_id === 'none' ? null : Number(form.guru_id),
     gelombang_id: Number(form.gelombang_id),
@@ -424,9 +457,17 @@ async function submit() {
   }
 
   try {
+    if (!isEdit) {
+      const cek = await api.get('/api/lokasi-pkl', { params: { siswa_id: payload.siswa_id } })
+      if ((cek.data.data ?? []).some((l) => l.status !== 'cancelled')) {
+        local.siswa = 'Siswa sudah memiliki penempatan PKL.'
+        siswaPlaced.value = new Set(siswaPlaced.value).add(payload.siswa_id)
+        return
+      }
+    }
     const res = isEdit
-      ? await api.put(`/api/lokasi-pkl/${props.id}`, { ...payload, siswa_id: siswa.value.id })
-      : await api.post('/api/lokasi-pkl', { ...payload, siswa_id: siswa.value.id })
+      ? await api.put(`/api/lokasi-pkl/${props.id}`, payload)
+      : await api.post('/api/lokasi-pkl', payload)
     toast.show(res.data.message || 'Penempatan disimpan.')
     router.push(backTo.value)
   } catch (err) {

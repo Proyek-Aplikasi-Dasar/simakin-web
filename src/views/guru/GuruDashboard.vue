@@ -75,26 +75,6 @@
         <StatCard v-for="s in stats" :key="s.label" v-bind="s" :loading="loading" />
       </section>
 
-      <!-- token penilaian belum ada endpoint, dikosongin dulu -->
-      <section class="flex flex-wrap items-center gap-4 overflow-hidden rounded-2xl border border-slate-100 bg-white px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
-        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-          <AppIcon name="key-round" class="h-[22px] w-[22px]" />
-        </span>
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 class="text-base font-semibold leading-6 tracking-[-0.02em] text-slate-900">Token Penilaian {{ bulanLabel }}</h2>
-          <p class="text-xs leading-[18px] text-slate-500">Berikan kode ini ke pembimbing industri. Pengisian tanggal 1 – 10.</p>
-        </div>
-        <div class="flex gap-1.5 sm:gap-2" role="img" aria-label="Token penilaian belum tersedia" title="Token belum tersedia">
-          <span
-            v-for="i in 6"
-            :key="i"
-            class="flex h-11 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xl font-semibold leading-[30px] tracking-[-0.02em] text-slate-300 sm:h-[52px] sm:w-11"
-          >
-            —
-          </span>
-        </div>
-      </section>
-
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_352px]">
         <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <CardHeader
@@ -168,8 +148,27 @@
 
         <!-- notifikasi belum ada endpoint -->
         <section class="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white">
-          <CardHeader title="Notifikasi" action="Tandai dibaca" />
-          <p class="flex-1 px-6 py-12 text-center text-sm text-slate-400">Belum ada notifikasi.</p>
+          <CardHeader title="Notifikasi" :description="`${notifBelumDibaca} belum dibaca`" action="Tandai dibaca" />
+          <p v-if="!notifikasi.length" class="flex-1 px-6 py-12 text-center text-sm text-slate-400">Belum ada notifikasi.</p>
+          <ul v-else class="flex flex-1 flex-col gap-1 px-3 pb-2">
+            <li
+              v-for="n in notifikasi"
+              :key="n.id"
+              :class="['flex items-start gap-3 rounded-xl p-3', n.dibaca ? '' : 'bg-slate-100']"
+            >
+              <span :class="['flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', n.bubble ?? 'bg-blue-50 text-blue-600']">
+                <AppIcon :name="n.icon ?? 'bell'" class="h-5 w-5" />
+              </span>
+              <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p class="text-xs font-semibold leading-[18px] text-slate-900">{{ n.judul }}</p>
+                <p class="text-[11px] leading-[14px] text-slate-500">{{ n.deskripsi }}</p>
+              </div>
+              <div class="flex shrink-0 flex-col items-end gap-2">
+                <span class="text-[11px] font-medium leading-[14px] text-slate-500">{{ n.waktu }}</span>
+                <span v-if="!n.dibaca" class="h-2 w-2 rounded-full bg-blue-600" aria-label="Belum dibaca"></span>
+              </div>
+            </li>
+          </ul>
           <div class="flex justify-center px-6 py-4">
             <span
               title="Segera hadir"
@@ -258,7 +257,6 @@ const waktu = computed(() => {
 
 const today = toIso(new Date())
 const tanggalLabel = `${hariName(today)} ${formatDate(today)}`
-const bulanLabel = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
 
 const loading = ref(true)
 const error = ref('')
@@ -266,6 +264,9 @@ const ringkasan = ref(null) // { total, aktif, belumMulai, perusahaan }
 const presensiRows = ref([])
 const mingguan = ref(null) // { hadir, sakit, izin, belum }
 const gelombang = ref(null)
+// notifikasi belum ada endpoint di BE; list dirender sesuai desain, diisi setelah endpoint tersedia
+const notifikasi = ref([])
+const notifBelumDibaca = computed(() => notifikasi.value.filter((n) => !n.dibaca).length)
 
 // username guru = NIP, dicocokin ke guru.nip di lokasi PKL
 // /api/user ga ada id guru, jadi diambil dari lokasi PKL

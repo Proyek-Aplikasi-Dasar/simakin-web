@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-2">
     <p :id="`${id}-label`" class="text-xs font-semibold leading-4 text-slate-600">{{ label }}</p>
-    <div role="radiogroup" :aria-labelledby="`${id}-label`" class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-6">
+    <div role="radiogroup" :aria-labelledby="`${id}-label`" :class="vertical ? 'flex flex-col items-start gap-2' : 'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-6'">
       <label
         v-for="o in options"
         :key="o.value"
@@ -11,6 +11,7 @@
             ? 'border-[1.5px] border-blue-600 bg-blue-50'
             : 'border border-slate-200 bg-white',
           isDisabled(o) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+          vertical ? '!w-auto' : '',
         ]"
       >
         <input
@@ -47,6 +48,7 @@ const props = defineProps({
   hint: { type: String, default: '' },
   error: { type: String, default: '' },
   disabled: Boolean,
+  vertical: Boolean,
 })
 
 defineEmits(['update:modelValue'])

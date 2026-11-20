@@ -133,6 +133,7 @@
 
         <div v-else class="relative flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-4 py-2.5 sm:px-6">
           <input
+            ref="checkAll"
             type="checkbox"
             :checked="allPageSelected"
             :class="{ 'hint-shake': shake }"
@@ -142,14 +143,17 @@
             @change="toggleAllOnPage"
           />
 
-          <div v-if="showHint" class="fixed inset-0 z-10" @click="hideHint"></div>
+          <!-- Di-teleport ke body + posisi fixed supaya tidak terpotong overflow-hidden/overflow-x-auto kartu -->
+          <Teleport to="body">
+          <div v-if="showHint" class="fixed inset-0 z-[60]" @click="hideHint"></div>
           <Transition name="hint">
             <div
               v-if="showHint"
               role="status"
-              class="absolute left-4 top-full z-20 mt-2 w-[320px] max-w-[calc(100vw-4rem)] rounded-xl border border-yellow-200 bg-white p-3.5 shadow-lg"
+              :style="{ left: hintPos.left + 'px', top: hintPos.top + 'px' }"
+              class="fixed z-[70] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl border border-yellow-200 bg-white p-3.5 shadow-lg"
             >
-              <span class="absolute -top-1.5 left-[18px] h-3 w-3 rotate-45 border-l border-t border-yellow-200 bg-white"></span>
+              <span class="absolute -top-1.5 h-3 w-3 rotate-45 border-l border-t border-yellow-200 bg-white" :style="{ left: hintPos.arrow + 'px' }"></span>
               <div class="flex items-start gap-3">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-yellow-50 text-yellow-700">
                   <AppIcon name="hourglass" class="h-[18px] w-[18px]" />
@@ -181,6 +185,7 @@
               </div>
             </div>
           </Transition>
+          </Teleport>
           <span class="text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 sm:hidden">Pilih semua</span>
           <span class="flex-[2] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Siswa</span>
           <span class="flex-[1.6] text-[10px] font-semibold uppercase leading-4 tracking-[0.6px] text-slate-500 max-sm:hidden">Perusahaan Tujuan</span>
@@ -598,7 +603,20 @@ function clearSelection() {
 
 const showHint = ref(false)
 const shake = ref(false)
+const checkAll = ref(null)
+const hintPos = reactive({ left: 16, top: 0, arrow: 18 })
 let hintTimer = null
+
+function placeHint() {
+  const el = checkAll.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  const width = Math.min(320, window.innerWidth - 32)
+  const left = Math.max(16, Math.min(r.left - 4, window.innerWidth - width - 16))
+  hintPos.left = left
+  hintPos.top = r.bottom + 14
+  hintPos.arrow = Math.max(12, r.left + r.width / 2 - left - 6)
+}
 
 function hideHint() {
   showHint.value = false
@@ -607,6 +625,7 @@ function hideHint() {
 
 function showEmptyHint() {
   clearTimeout(hintTimer)
+  placeHint()
   showHint.value = true
   shake.value = true
   setTimeout(() => (shake.value = false), 450)
@@ -661,10 +680,14 @@ function onKeydown(e) {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('resize', hideHint)
+  window.addEventListener('scroll', hideHint, true)
   load()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('resize', hideHint)
+  window.removeEventListener('scroll', hideHint, true)
   clearTimeout(hintTimer)
 })
 </script>

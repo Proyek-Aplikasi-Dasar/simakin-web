@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Guru Pembimbing', to: backTo }, { label: 'Detail Guru' }]"
       title="Detail Guru"
@@ -32,8 +32,8 @@
     <div v-else class="flex flex-col gap-6">
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <div class="h-[86px] bg-blue-600"></div>
-        <div class="flex items-end justify-between gap-4 px-6 pb-5">
-          <div class="flex items-end gap-5">
+        <div class="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:px-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
             <span class="-mt-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-10 w-10" />
             </span>
@@ -44,7 +44,7 @@
           </div>
           <span
             :class="[
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
+              'inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
               aktif.length ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-yellow-200 bg-yellow-50 text-yellow-700',
             ]"
           >
@@ -52,7 +52,7 @@
             {{ aktif.length ? 'Aktif Membimbing' : 'Belum Ada Siswa' }}
           </span>
         </div>
-        <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-6 py-5 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-4 py-5 sm:px-6 md:grid-cols-3">
           <InfoItem icon="smartphone" label="Nomor Telepon" :value="guru.telp" />
           <InfoItem icon="building" label="Program Studi" :value="prodi" />
           <InfoItem icon="key-round" label="Akun" :value="guru.user?.username" />
@@ -73,7 +73,7 @@
           </template>
         </CardHeader>
 
-        <div class="flex items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5">
+        <div class="hidden items-center gap-4 border-t border-slate-100 bg-slate-100 px-6 py-2.5 lg:flex">
           <span
             v-for="col in columns"
             :key="col.label"
@@ -86,7 +86,7 @@
         <p v-if="!rows.length" class="px-6 py-12 text-center text-sm text-slate-400">Belum ada siswa yang dialokasikan.</p>
 
         <div v-else class="divide-y divide-slate-100">
-          <div v-for="r in pagedRows" :key="r.id" class="flex items-center gap-4 px-6 py-3">
+          <div v-for="r in pagedRows" :key="r.id" class="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:gap-4">
             <div class="flex min-w-0 flex-1 items-center gap-2.5">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
                 <AppIcon name="user" class="h-5 w-5" />
@@ -98,11 +98,11 @@
                 </span>
               </div>
             </div>
-            <span class="w-[220px] truncate text-xs text-slate-600">{{ r.perusahaan }}</span>
-            <div class="flex w-[170px] flex-col gap-1.5">
+            <span class="w-full truncate text-xs text-slate-600 lg:w-[220px]">{{ r.perusahaan }}</span>
+            <div class="flex w-full flex-col gap-1.5 lg:w-[170px]">
               <template v-if="r.persen !== null">
                 <span class="text-xs font-medium leading-[18px] text-slate-900">{{ r.persen }}% hadir</span>
-                <div class="h-1.5 w-[120px] overflow-hidden rounded-full bg-slate-200">
+                <div class="h-1.5 w-full max-w-[120px] overflow-hidden rounded-full bg-slate-200">
                   <div
                     :class="['h-full rounded-full', r.persen >= 80 ? 'bg-emerald-700' : 'bg-red-700']"
                     :style="{ width: `${r.persen}%` }"
@@ -111,13 +111,13 @@
               </template>
               <span v-else class="text-xs text-slate-400">—</span>
             </div>
-            <div class="w-[130px]">
+            <div class="lg:w-[130px]">
               <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', r.box]">
                 <span :class="['h-1.5 w-1.5 rounded-full', r.dot]" />
                 {{ r.statusLabel }}
               </span>
             </div>
-            <div class="flex w-[96px] justify-end gap-2">
+            <div class="flex justify-end gap-2 lg:w-[96px]">
               <router-link
                 :to="`/admin/master-data/siswa/${r.siswaId}`"
                 class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"

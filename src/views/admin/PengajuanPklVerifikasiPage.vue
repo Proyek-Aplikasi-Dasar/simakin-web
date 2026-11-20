@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Pengajuan PKL', to: backTo }, { label: isPending ? 'Verifikasi' : 'Detail' }]"
       :title="isPending ? 'Verifikasi Pengajuan PKL' : 'Detail Pengajuan PKL'"
@@ -22,27 +22,23 @@
     <p v-else-if="loadError" class="rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
 
     <div v-else class="flex flex-col gap-6">
-      <section class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <div class="absolute inset-x-0 top-0 h-14 overflow-hidden bg-blue-600">
-          <span class="absolute -top-[90px] left-[900px] h-[180px] w-[180px] rounded-full bg-blue-700"></span>
-          <span class="absolute left-[1010px] top-2.5 h-[120px] w-[120px] rounded-full bg-blue-700"></span>
-        </div>
+      <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
+        <div class="h-[86px] bg-blue-600"></div>
 
-        <div class="relative flex items-end gap-6 px-6 pb-5 pt-7">
-          <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white p-1">
-            <div class="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              <AppIcon name="user" class="h-9 w-9" />
+        <div class="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:px-6">
+          <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
+            <span class="-mt-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
+              <AppIcon name="user" class="h-10 w-10" />
+            </span>
+            <div class="min-w-0 pb-1">
+              <h2 class="break-words text-xl font-bold leading-7 tracking-[-0.02em] text-slate-900">{{ data.siswa?.nama || '—' }}</h2>
+              <p class="text-sm leading-5 text-slate-600">{{ siswaSubline }}</p>
             </div>
-          </div>
-
-          <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ data.siswa?.nama || '—' }}</h2>
-            <p class="text-xs leading-[18px] text-slate-500">{{ siswaSubline }}</p>
           </div>
 
           <span
             :class="[
-              'inline-flex shrink-0 items-center gap-1.5 self-end rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
+              'inline-flex shrink-0 items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4',
               status.box,
             ]"
           >

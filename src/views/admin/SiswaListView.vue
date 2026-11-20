@@ -171,7 +171,6 @@ const tabs = [
   { key: 'selesai', label: 'Selesai' },
 ]
 
-// Kolom tabel; urutan, pencarian, filter, dan pagination ditangani BaseTable
 const columns = [
   { key: 'name', label: 'Siswa' },
   { key: 'jurusan', label: 'Program Studi', width: 'w-[176px]', cellClass: 'sm:truncate' },

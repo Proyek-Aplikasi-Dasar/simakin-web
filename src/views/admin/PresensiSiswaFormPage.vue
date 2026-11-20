@@ -79,21 +79,9 @@
             <RadioCardGroup id="status-presensi" v-model="form.status" label="Status Kehadiran" :options="statusOptions" :error="errors.status" />
 
             <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
-              <div>
-                <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Jam Masuk</label>
-                <input v-model="form.jam_masuk" type="time" :class="inputCls" />
-                <p v-if="errors.jam_masuk" class="mt-1 text-xs text-red-600">{{ errors.jam_masuk }}</p>
-              </div>
-              <div>
-                <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Jam Shift Mulai</label>
-                <input v-model="form.jam_shift_mulai" type="time" :class="inputCls" />
-                <p v-if="errors.jam_shift_mulai" class="mt-1 text-xs text-red-600">{{ errors.jam_shift_mulai }}</p>
-              </div>
-              <div>
-                <label class="mb-1.5 block text-xs font-semibold leading-4 text-slate-900">Jam Shift Selesai</label>
-                <input v-model="form.jam_shift_selesai" type="time" :class="inputCls" />
-                <p v-if="errors.jam_shift_selesai" class="mt-1 text-xs text-red-600">{{ errors.jam_shift_selesai }}</p>
-              </div>
+              <TimeSelect id="jam-masuk" v-model="form.jam_masuk" label="Jam Masuk" :error="errors.jam_masuk" />
+              <TimeSelect id="jam-shift-mulai" v-model="form.jam_shift_mulai" label="Jam Shift Mulai" :error="errors.jam_shift_mulai" />
+              <TimeSelect id="jam-shift-selesai" v-model="form.jam_shift_selesai" label="Jam Shift Selesai" :error="errors.jam_shift_selesai" />
             </div>
 
             <div>
@@ -177,6 +165,7 @@ import RadioCardGroup from '../../components/RadioCardGroup.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import PageSkeleton from '../../components/PageSkeleton.vue'
 import DatePicker from '../../components/DatePicker.vue'
+import TimeSelect from '../../components/TimeSelect.vue'
 
 const props = defineProps({ id: { type: [String, Number], default: null } })
 const route = useRoute()

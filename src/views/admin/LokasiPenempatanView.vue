@@ -161,10 +161,12 @@ function singkat(list, max = 2) {
   return list.length > max ? `${list.slice(0, max).join(', ')} +${list.length - max}` : list.join(', ')
 }
 
+// Ada penempatan -> langsung form edit (penempatan pertama); dropdown siswa di form dipakai berpindah ke siswa lain
+// di perusahaan yang sama. Belum ada penempatan -> form tambah.
+// Dibuka dari daftar, jadi setelah simpan form kembali ke daftar (tanpa ?from=detail).
 function editTarget(row) {
-  if (row.penempatanIds.length === 1) return `/admin/lokasi-penempatan/penempatan/${row.penempatanIds[0]}/edit`
-  if (!row.penempatanIds.length) return `/admin/lokasi-penempatan/tambah?perusahaan_id=${row.id}`
-  return `/admin/lokasi-penempatan/${row.id}`
+  if (row.penempatanIds.length) return `/admin/lokasi-penempatan/penempatan/${row.penempatanIds[0]}/edit`
+  return `/admin/lokasi-penempatan/tambah?perusahaan_id=${row.id}`
 }
 
 const rowsAll = computed(() => {

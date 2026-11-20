@@ -3,30 +3,41 @@
     <PageHeader
       :breadcrumb="[{ label: 'Lainnya' }, { label: 'Pengaturan Sistem' }]"
       title="Pengaturan Sistem"
-      subtitle="Atur jam presensi harian dan penilaian bulanan: bulan aktif, tanggal pengisian, dan token."
+      subtitle="Atur jam presensi harian dan penilaian bulanan: bulan aktif."
     />
 
-    <div class="flex max-w-[800px] flex-col gap-6">
+    <div class="flex flex-col gap-6">
+      <div
+        v-if="dirty"
+        role="status"
+        class="flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-[13px] font-medium text-yellow-700"
+      >
+        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4" />
+          <path d="M12 16h.01" />
+        </svg>
+        Ada perubahan yang belum disimpan. Klik Simpan Perubahan sebelum pindah halaman.
+      </div>
+
       <FormCard title="Jam Presensi" description="Presensi cukup satu kali per hari, tanpa presensi masuk dan pulang.">
         <p v-if="loadError" class="mb-4 rounded-lg bg-red-50 p-3 text-xs text-red-600">{{ loadError }}</p>
         <PageSkeleton v-if="loading" :blocks="2" />
 
         <div v-else class="flex flex-col gap-5">
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <FormField
+            <TimeSelect
               id="mulai"
               v-model="form.mulai"
-              type="time"
               label="Presensi Dibuka"
-              hint="Waktu WIB."
+              :note="catatan('mulai')"
               :error="fieldErrors.mulai"
             />
-            <FormField
+            <TimeSelect
               id="selesai"
               v-model="form.selesai"
-              type="time"
               label="Presensi Ditutup"
-              hint="Waktu WIB. Harus setelah jam dibuka."
+              :note="catatan('selesai')"
               :error="fieldErrors.selesai"
             />
           </div>
@@ -79,10 +90,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import PageHeader from '../../components/PageHeader.vue'
 import FormCard from '../../components/FormCard.vue'
-import FormField from '../../components/FormField.vue'
+import TimeSelect from '../../components/TimeSelect.vue'
 import SwitchRow from '../../components/SwitchRow.vue'
 import PenilaianBulananSettings from '../../components/PenilaianBulananSettings.vue'
 import AppIcon from '../../components/AppIcon.vue'
@@ -92,20 +104,39 @@ import { useMasterResource, fetchAll } from '../../composables/useMasterResource
 
 const ENDPOINT = '/api/waktu-absen'
 
+const hhmm = (v) => (v ? String(v).slice(0, 5) : '')
+
 const form = reactive({ mulai: '', selesai: '' })
 const selfie = ref(true)
 const aktif = ref(true)
-const current = ref(null) 
+const current = ref(null)
 const jumlahLain = ref(0)
 const loading = ref(true)
 const loadError = ref('')
 
 const { saving, fieldErrors, save } = useMasterResource(ENDPOINT, { name: 'Jam presensi', reload: false })
 
+const aktifTersimpan = () => (current.value?.is_active == null ? true : !!current.value.is_active)
+
+const dirty = computed(() => {
+  if (loading.value) return false
+  return (
+    form.mulai !== hhmm(current.value?.mulai) ||
+    form.selesai !== hhmm(current.value?.selesai) ||
+    aktif.value !== aktifTersimpan()
+  )
+})
+
+function catatan(key) {
+  const lama = hhmm(current.value?.[key])
+  if (!lama || form[key] === lama) return ''
+  return `Diubah dari ${lama} WIB · belum disimpan`
+}
+
 function fill() {
-  form.mulai = current.value?.mulai ?? ''
-  form.selesai = current.value?.selesai ?? ''
-  aktif.value = current.value?.is_active == null ? true : !!current.value.is_active
+  form.mulai = hhmm(current.value?.mulai)
+  form.selesai = hhmm(current.value?.selesai)
+  aktif.value = aktifTersimpan()
 }
 
 async function load(silent = false) {
@@ -141,6 +172,10 @@ async function submit() {
   })
   if (ok) await load(true)
 }
+
+onBeforeRouteLeave(() => {
+  if (dirty.value && !window.confirm('Ada perubahan yang belum disimpan. Tetap pindah halaman?')) return false
+})
 
 onMounted(load)
 </script>

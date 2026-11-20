@@ -154,16 +154,7 @@
 
           <span class="hidden h-8 w-px bg-slate-200 sm:block"></span>
 
-          <div class="flex items-center gap-2.5 pl-1">
-            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              <AppIcon name="user" class="h-5 w-5" />
-            </span>
-            <div class="hidden md:block">
-              <p class="text-sm font-semibold leading-5">{{ auth.user?.name }}</p>
-              <p class="text-[11px] leading-[14px] text-slate-500">Guru Pembimbing</p>
-            </div>
-            <AppIcon name="chevron-down" class="hidden h-4 w-4 text-slate-500 md:block" />
-          </div>
+          <UserMenu :name="auth.user?.name" role-label="Guru Pembimbing" @logout="handleLogout" />
         </div>
       </header>
 
@@ -180,6 +171,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppIcon from '../components/AppIcon.vue'
 import GlobalSearch from '../components/GlobalSearch.vue'
+import UserMenu from '../components/UserMenu.vue'
 
 const route = useRoute()
 const router = useRouter()

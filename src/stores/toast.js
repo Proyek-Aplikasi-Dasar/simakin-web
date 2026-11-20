@@ -13,12 +13,15 @@ export const useToastStore = defineStore('toast', {
 
       const dup = this.items.find((t) => t.message === message && t.type === type)
       if (dup) {
+        dup.duration = duration
+        dup.stamp++
         this.schedule(dup.id, duration)
         return dup.id
       }
 
       const id = nextId++
-      this.items.push({ id, message, type })
+      // duration & stamp dipakai ToastNotification untuk progress bar
+      this.items.push({ id, message, type, duration, stamp: 0 })
       if (this.items.length > MAX_TOASTS) this.dismiss(this.items[0].id)
       this.schedule(id, duration)
       return id

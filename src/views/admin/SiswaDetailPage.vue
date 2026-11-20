@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Siswa PKL', to: backTo }, { label: 'Detail Siswa' }]"
       title="Detail Siswa"
@@ -32,8 +32,8 @@
     <div v-else class="flex flex-col gap-6">
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
         <div class="h-[86px] bg-blue-600"></div>
-        <div class="flex items-end justify-between gap-4 px-6 pb-5">
-          <div class="flex items-end gap-5">
+        <div class="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:px-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
             <span class="-mt-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
               <AppIcon name="user" class="h-10 w-10" />
             </span>
@@ -43,14 +43,14 @@
             </div>
           </div>
           <span
-            :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PKL_STATUS[pklStatus].box]"
+            :class="['inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PKL_STATUS[pklStatus].box]"
           >
             <span :class="['h-1.5 w-1.5 rounded-full', PKL_STATUS[pklStatus].dot]" />
             {{ pklStatus === 'aktif' ? 'Aktif PKL' : PKL_STATUS[pklStatus].label }}
           </span>
         </div>
 
-        <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-6 py-5 md:grid-cols-2 xl:grid-cols-4">
+        <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-4 py-5 sm:px-6 md:grid-cols-2 xl:grid-cols-4">
           <InfoItem icon="building" label="Tempat PKL" :value="lokasi?.perusahaan?.nama" :hint="perusahaan?.alamat" />
           <InfoItem icon="user-check" label="Pembimbing" :value="lokasi?.guru?.nama" />
           <InfoItem icon="calendar" label="Periode" :value="periode" :hint="gelombang?.nama" />
@@ -66,7 +66,7 @@
         <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <CardHeader title="Data Siswa" description="Diisi siswa saat melengkapi profil di aplikasi." />
 
-          <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-6">
+          <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
             <button
               v-for="t in tabs"
               :key="t.key"
@@ -81,7 +81,7 @@
             </button>
           </div>
 
-          <div class="px-6 py-6">
+          <div class="px-4 py-6 sm:px-6">
             <div v-if="tab === 'pribadi'" class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
               <InfoItem icon="user" label="Nama Lengkap" :value="siswa.user?.name" />
               <InfoItem icon="key-round" label="NIS / NISN" :value="nisNisn" />
@@ -133,7 +133,7 @@
           <CardHeader title="Aktivitas Terbaru" description="Dari aplikasi siswa." />
           <SkeletonRows v-if="absLoading" :rows="4" :cols="2" :avatar="false" :action="false" />
           <p v-else-if="!aktivitas.length" class="px-6 py-10 text-center text-sm text-slate-400">Belum ada aktivitas presensi.</p>
-          <ul v-else class="flex flex-col gap-5 px-6 py-6">
+          <ul v-else class="flex flex-col gap-5 px-4 py-6 sm:px-6">
             <li v-for="a in aktivitas" :key="a.id" class="flex items-start gap-3">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                 <AppIcon name="pin" class="h-5 w-5" />
@@ -152,7 +152,7 @@
 
         <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <CardHeader title="Akses Cepat" />
-          <div class="flex flex-col gap-3 px-6 pb-6">
+          <div class="flex flex-col gap-3 px-4 pb-6 sm:px-6">
             <router-link
               :to="`${backTo}/${id}/presensi`"
               class="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-900 hover:bg-slate-50"

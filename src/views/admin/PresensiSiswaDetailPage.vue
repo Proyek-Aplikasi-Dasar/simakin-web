@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <PageHeader
       :breadcrumb="[{ label: 'Presensi Siswa', to: '/admin/presensi-siswa' }, { label: `Detail ${statusInfo.label}` }]"
       :title="`Detail Presensi · ${statusInfo.label}`"
@@ -38,30 +38,30 @@
 
     <div v-else class="flex flex-col gap-6">
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <div class="h-[70px] bg-blue-600"></div>
-        <div class="flex items-end justify-between gap-4 px-6 pb-5">
-          <div class="flex items-end gap-5">
-            <span class="-mt-9 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
-              <AppIcon name="user" class="h-9 w-9" />
+        <div class="h-[86px] bg-blue-600"></div>
+        <div class="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:px-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
+            <span class="-mt-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
+              <AppIcon name="user" class="h-10 w-10" />
             </span>
             <div class="pb-1">
               <h2 class="text-xl font-bold leading-7 tracking-[-0.02em] text-slate-900">{{ siswa?.user?.name ?? '—' }}</h2>
               <p class="text-sm leading-5 text-slate-600">NIS {{ siswa?.nis }}<template v-if="siswa?.kelas"> · {{ siswa.kelas }}</template></p>
             </div>
           </div>
-          <span :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', statusInfo.box]">
+          <span :class="['inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', statusInfo.box]">
             <span :class="['h-1.5 w-1.5 rounded-full', statusInfo.dot]" />
             {{ statusInfo.label }}
           </span>
         </div>
-        <div class="grid grid-cols-1 gap-6 border-t border-slate-100 px-6 py-5 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-4 py-5 sm:px-6 md:grid-cols-2 xl:grid-cols-3">
           <InfoItem icon="calendar" label="Tanggal Presensi" :value="tanggalLabel" />
           <InfoItem icon="building" label="Tempat PKL" :value="lokasi?.perusahaan?.nama" />
           <InfoItem icon="user-check" label="Guru Pembimbing" :value="lokasi?.guru?.nama" />
         </div>
       </section>
 
-      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div class="flex flex-col gap-6">
           <FormCard title="Informasi Presensi" :description="infoDesc">
             <div v-if="isBelum" class="flex flex-col items-center gap-2 py-8 text-center">

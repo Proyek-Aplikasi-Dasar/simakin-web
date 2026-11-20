@@ -153,20 +153,7 @@
 
           <span class="hidden h-8 w-px bg-slate-200 sm:block"></span>
 
-          <router-link
-            to="/admin/profil"
-            class="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-1 hover:bg-slate-50 md:pr-2"
-            title="Lihat profil"
-          >
-            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              <AppIcon name="user" class="h-5 w-5" />
-            </span>
-            <div class="hidden md:block">
-              <p class="text-sm font-semibold leading-5">{{ auth.user?.name }}</p>
-              <p class="text-[11px] leading-[14px] text-slate-500">Administrator</p>
-            </div>
-            <AppIcon name="chevron-down" class="hidden h-4 w-4 text-slate-500 md:block" />
-          </router-link>
+          <UserMenu :name="auth.user?.name" role-label="Administrator" profil-to="/admin/profil" @logout="handleLogout" />
         </div>
       </header>
 
@@ -184,6 +171,7 @@ import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import AppIcon from '../components/AppIcon.vue'
 import GlobalSearch from '../components/GlobalSearch.vue'
+import UserMenu from '../components/UserMenu.vue'
 
 const route = useRoute()
 const router = useRouter()

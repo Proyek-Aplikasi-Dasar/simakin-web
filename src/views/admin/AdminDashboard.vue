@@ -15,8 +15,26 @@
     </PageHeader>
 
     <div class="flex flex-col gap-6">
+      <div
+        v-if="gagalLabels.length"
+        role="alert"
+        class="flex flex-wrap items-center gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700"
+      >
+        <AppIcon name="alert" class="h-5 w-5 shrink-0" />
+        <p class="min-w-0 flex-1 leading-[18px]">
+          Sebagian data dashboard gagal dimuat: {{ gagalLabels.join(', ') }}.
+        </p>
+        <button
+          type="button"
+          class="rounded-xl border border-red-200 bg-white px-3 py-1.5 font-semibold text-red-700 hover:bg-red-50"
+          @click="muatSemua"
+        >
+          Coba lagi
+        </button>
+      </div>
+
       <section
-        class="relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl bg-blue-600 px-5 py-5 text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.35)] sm:flex-row sm:items-center sm:gap-6 sm:px-8 sm:py-6"
+        class="relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl bg-blue-600 px-5 py-5 text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.35)] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-8 sm:py-6"
       >
         <div class="absolute -top-[120px] left-[820px] h-[260px] w-[260px] rounded-full bg-blue-700"></div>
         <div class="absolute left-[960px] top-[40px] h-[180px] w-[180px] rounded-full bg-blue-700"></div>
@@ -266,7 +284,9 @@
               <span class="shrink-0 text-[11px] font-medium leading-[14px] text-slate-500">{{ waktuSingkat(a.waktu) }}</span>
             </li>
           </ul>
-          <p v-else class="flex-1 px-6 py-12 text-center text-sm text-slate-400">Belum ada aktivitas.</p>
+          <p v-else class="flex-1 px-6 py-12 text-center text-sm text-slate-400">
+            {{ errors.pengajuan ? 'Gagal memuat aktivitas.' : 'Belum ada aktivitas.' }}
+          </p>
         </section>
       </div>
     </div>
@@ -298,7 +318,24 @@ const loading = ref(true)
 const loadingKehadiran = ref(true)
 const loadingRingkasan = ref(true)
 const loadingGelombang = ref(true)
-const errors = reactive({ dashboard: false, pengajuan: false, kehadiran: false })
+const errors = reactive({
+  dashboard: false,
+  gelombang: false,
+  kuota: false,
+  pengajuan: false,
+  pending: false,
+  kehadiran: false,
+})
+
+const LABEL_ERROR = {
+  dashboard: 'ringkasan',
+  gelombang: 'gelombang PKL',
+  kuota: 'kuota perusahaan',
+  pengajuan: 'pengajuan PKL',
+  pending: 'jumlah pengajuan menunggu',
+  kehadiran: 'kehadiran per program studi',
+}
+const gagalLabels = computed(() => Object.keys(LABEL_ERROR).filter((k) => errors[k]).map((k) => LABEL_ERROR[k]))
 
 const ringkasan = ref(null) 
 const gelombang = ref(null) 
@@ -384,7 +421,7 @@ const stats = computed(() => {
       icon: 'users',
       tone: 'blue',
       value: r?.total_siswa ?? null,
-      hint: 'terdaftar di sistem',
+      hint: 'aktif di sistem',
     },
     {
       label: 'Guru Pembimbing',
@@ -398,7 +435,7 @@ const stats = computed(() => {
       icon: 'building',
       tone: 'amber',
       value: r?.total_perusahaan ?? null,
-      hint: perusahaanKuota.value !== null ? `${perusahaanKuota.value} perusahaan kuota masih tersedia` : '',
+      hint: perusahaanKuota.value !== null ? `${perusahaanKuota.value} kuota masih tersedia` : '',
     },
     {
       label: 'Kehadiran Hari Ini',
@@ -512,10 +549,13 @@ async function loadKehadiranJurusan() {
         const total = rows.reduce((n, r) => n + r.hadir + r.izin + r.sakit, 0)
         return { id: j.id, kode: j.kode, nama: j.nama, persen: total ? Math.round((hadir / total) * 100) : null }
       } catch {
-        return { id: j.id, kode: j.kode, nama: j.nama, persen: null }
+        return { id: j.id, kode: j.kode, nama: j.nama, persen: null, gagal: true }
       }
     })
   )
+
+  // Kalau semua program studi gagal, itu error sungguhan (bukan sekadar belum ada data)
+  if (hasil.length && hasil.every((h) => h.gagal)) throw new Error('Rekap kehadiran gagal dimuat')
 
   kehadiranJurusan.value = hasil.sort((a, b) => {
     if (a.persen === null && b.persen === null) return a.kode.localeCompare(b.kode)
@@ -525,7 +565,13 @@ async function loadKehadiranJurusan() {
   })
 }
 
-onMounted(() => {
+function muatSemua() {
+  loading.value = true
+  loadingKehadiran.value = true
+  loadingRingkasan.value = true
+  loadingGelombang.value = true
+  Object.keys(errors).forEach((k) => (errors[k] = false))
+
   api.get('/api/dashboard/admin')
     .then((res) => {
       ringkasan.value = res.data
@@ -541,7 +587,9 @@ onMounted(() => {
     .then((res) => {
       gelombang.value = pilihGelombang(res.data.data ?? [])
     })
-    .catch(() => {})
+    .catch(() => {
+      errors.gelombang = true
+    })
     .finally(() => {
       loadingGelombang.value = false
     })
@@ -550,7 +598,9 @@ onMounted(() => {
     .then((res) => {
       perusahaanKuota.value = res.data.meta?.total ?? null
     })
-    .catch(() => {})
+    .catch(() => {
+      errors.kuota = true
+    })
 
   api.get('/api/pengajuan-pkl')
     .then((res) => {
@@ -567,7 +617,9 @@ onMounted(() => {
     .then((res) => {
       pengajuanPending.value = res.data.meta?.total ?? null
     })
-    .catch(() => {})
+    .catch(() => {
+      errors.pending = true
+    })
 
   loadKehadiranJurusan()
     .catch(() => {
@@ -576,6 +628,8 @@ onMounted(() => {
     .finally(() => {
       loadingKehadiran.value = false
     })
-})
+}
+
+onMounted(muatSemua)
 
 </script>

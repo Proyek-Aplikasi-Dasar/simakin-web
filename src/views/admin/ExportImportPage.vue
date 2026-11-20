@@ -18,17 +18,17 @@
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
       <div class="flex flex-col gap-6">
         <FormCard title="Unduh Template" description="Isi template ini lalu import di bawah.">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
               v-for="t in templates"
               :key="t.label"
-              class="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-100 p-4"
+              class="flex min-w-0 flex-col gap-2 rounded-xl border border-slate-100 bg-slate-100 p-2.5 sm:gap-3 sm:p-4"
             >
               <span :class="['flex h-10 w-10 items-center justify-center rounded-lg', tones[t.tone]]">
                 <AppIcon :name="t.icon" class="h-5 w-5" />
               </span>
-              <div>
-                <p class="text-xs font-semibold leading-4 text-slate-900">Template {{ t.label }}</p>
+              <div class="min-w-0 flex-1">
+                <p class="break-words text-xs font-semibold leading-4 text-slate-900">Template {{ t.label }}</p>
                 <p class="text-[11px] leading-[14px] text-slate-500">.xlsx</p>
               </div>
               <button
@@ -36,7 +36,7 @@
                 :disabled="!t.type || downloading === t.type"
                 :title="t.type ? undefined : 'Template belum tersedia di BE'"
                 :class="[
-                  'flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold',
+                  'flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-[11px] font-semibold sm:gap-2 sm:text-xs',
                   t.type ? 'hover:bg-slate-50 disabled:opacity-60' : 'cursor-not-allowed opacity-60',
                 ]"
                 @click="getTemplate(t.type)"

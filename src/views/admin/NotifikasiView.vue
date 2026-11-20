@@ -7,7 +7,7 @@
     >
       <button
         type="button"
-        :disabled="!unreadCount"
+        :disabled="!apiReady || !unreadCount"
         class="flex h-[42px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold leading-5 text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         @click="tandaiSemua"
       >
@@ -29,9 +29,10 @@
             :key="t.key"
             type="button"
             :class="[
-              '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold',
+              '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50',
               tab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700',
             ]"
+            :disabled="!apiReady"
             @click="tab = t.key"
           >
             {{ t.label }}
@@ -41,7 +42,14 @@
           </button>
         </div>
 
-        <SkeletonRows v-if="loading" :rows="5" :cols="1" :avatar="false" :action="false" />
+        <div v-if="!apiReady" class="flex flex-col items-center gap-2 px-6 py-12 text-center">
+          <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
+            <AppIcon name="bell" class="h-5 w-5 text-slate-400" />
+          </span>
+          <p class="text-sm font-semibold text-slate-700">Notifikasi belum tersedia</p>
+          <p class="text-xs text-slate-500">Endpoint notifikasi belum tersedia di BE, jadi daftar notifikasi dinonaktifkan sementara.</p>
+        </div>
+        <SkeletonRows v-else-if="loading" :rows="5" :cols="1" :avatar="false" :action="false" />
         <div v-else-if="error" class="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p class="text-sm text-red-600">{{ error }}</p>
           <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold hover:bg-slate-50" @click="load">Coba lagi</button>
@@ -95,9 +103,13 @@
       <form novalidate @submit.prevent="kirim">
         <FormCard title="Kirim Pengumuman" description="Broadcast ke aplikasi siswa dan panel guru.">
           <div class="flex flex-col gap-4">
+            <p v-if="!apiReady" class="rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-600">
+              Endpoint pengumuman belum tersedia.
+            </p>
             <FormField
               id="judul"
               v-model="form.judul"
+              :disabled="!apiReady"
               label="Judul"
               required
               placeholder="Contoh: Libur Nasional 17 Oktober"
@@ -106,11 +118,12 @@
               @blur="touch('judul')"
             />
 
-            <RadioCardGroup id="penerima" v-model="form.penerima" label="Penerima" :options="penerimaOptions" />
+            <RadioCardGroup id="penerima" v-model="form.penerima" label="Penerima" :options="penerimaOptions" vertical :disabled="!apiReady" />
 
             <FormField
               id="isi"
               v-model="form.isi"
+              :disabled="!apiReady"
               label="Isi Pengumuman"
               textarea
               required
@@ -124,7 +137,7 @@
 
             <button
               type="submit"
-              :disabled="sending"
+              :disabled="sending || !apiReady"
               class="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <AppIcon name="send" class="h-5 w-5" />
@@ -154,6 +167,9 @@ import SkeletonRows from '../../components/SkeletonRows.vue'
 
 const PAGE_SIZE = 10
 
+// BE (simakin-api) belum punya endpoint notifikasi/pengumuman. Ubah ke true setelah tersedia.
+const apiReady = false
+
 const router = useRouter()
 const toast = useToastStore()
 
@@ -180,6 +196,7 @@ const tab = ref('all')
 const tampil = ref(PAGE_SIZE)
 
 async function load() {
+  if (!apiReady) return
 
 }
 
@@ -238,6 +255,7 @@ function buka(n) {
 }
 
 function tandaiSemua() {
+  if (!apiReady) return
   notifs.value.forEach((n) => (n.dibaca = true))
 }
 
@@ -252,7 +270,7 @@ const { errorOf, validate, touch } = useFormValidation(form, {
 })
 
 async function kirim() {
-  if (sending.value || !validate()) return
+  if (!apiReady || sending.value || !validate()) return
   sending.value = true
   try {
     const payload = { judul: form.judul.trim(), penerima: form.penerima, isi: form.isi.trim() }

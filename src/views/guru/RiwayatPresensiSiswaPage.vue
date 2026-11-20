@@ -32,28 +32,36 @@
 
     <div v-else class="flex flex-col gap-6">
       <section class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white">
-        <div class="absolute inset-x-0 top-0 h-14 overflow-hidden bg-blue-600">
-          <span class="absolute -top-[90px] right-[160px] h-[180px] w-[180px] rounded-full bg-white/10"></span>
-          <span class="absolute right-[40px] top-[10px] h-[120px] w-[120px] rounded-full bg-white/10"></span>
-        </div>
-        <div class="relative flex flex-wrap items-end gap-x-4 gap-y-3 px-4 pb-5 pt-7 sm:gap-x-6 sm:px-6">
-          <span class="flex shrink-0 rounded-full bg-white p-1">
-            <span class="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              <AppIcon name="user" class="h-9 w-9" />
+        <div class="h-[86px] bg-blue-600"></div>
+        <div class="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:px-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
+            <span class="-mt-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-blue-600">
+              <AppIcon name="user" class="h-10 w-10" />
             </span>
-          </span>
-          <div class="min-w-0 flex-1 basis-40">
-            <h2 class="truncate text-lg font-semibold leading-[26px] text-slate-900">{{ siswa?.user?.name ?? '…' }}</h2>
-            <p class="text-xs leading-[18px] text-slate-500 sm:truncate">{{ subline }}</p>
+            <div class="pb-1">
+              <h2 class="text-xl font-bold leading-7 tracking-[-0.02em] text-slate-900">{{ siswa?.user?.name ?? '…' }}</h2>
+              <p class="text-sm leading-5 text-slate-600">{{ subline }}</p>
+            </div>
           </div>
           <span
-            v-if="rekap.persen != null"
-            class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-[3px] text-xs font-semibold leading-4 text-emerald-700"
+            v-if="lokasi"
+            :class="['inline-flex items-center gap-1.5 self-start whitespace-nowrap rounded-full border px-2.5 py-[3px] text-xs font-semibold leading-4', PKL_STATUS[pklStatus].box]"
           >
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-700" />
-            Kehadiran {{ rekap.persen }}%
+            <span :class="['h-1.5 w-1.5 rounded-full', PKL_STATUS[pklStatus].dot]" />
+            {{ pklStatus === 'aktif' ? 'Aktif PKL' : PKL_STATUS[pklStatus].label }}
           </span>
         </div>
+
+        <div class="grid grid-cols-1 gap-5 border-t border-slate-100 px-4 py-5 sm:px-6 md:grid-cols-2 xl:grid-cols-4">
+          <InfoItem icon="building" label="Tempat PKL" :value="lokasi?.perusahaan?.nama" :hint="lokasi?.perusahaan?.alamat" />
+          <InfoItem icon="user-check" label="Pembimbing" :value="lokasi?.guru?.nama" />
+          <InfoItem icon="calendar" label="Periode" :value="periodePkl" :hint="lokasi?.gelombang?.nama" />
+          <InfoItem icon="smartphone" label="Kontak" :value="siswa?.telp" />
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white">
@@ -62,7 +70,7 @@
           :description="`Periode ${formatDate(periode.from, true)} – ${formatDate(periode.to, true)}${loading ? '' : ` · ${rekap.efektif} hari efektif`}.`"
         />
 
-        <div class="flex gap-6 overflow-x-auto border-b border-slate-200 px-4 sm:px-6">
+        <div class="flex gap-4 overflow-x-auto border-b border-slate-200 px-4 sm:gap-6 sm:px-6">
           <button
             v-for="t in tabs"
             :key="t.key"
@@ -163,6 +171,8 @@ import {
   hariName,
   jamOnly,
   toIso,
+  pklStatusOf,
+  PKL_STATUS,
   ABSEN_STATUS,
 } from '../../utils/siswa'
 import PageHeader from '../../components/PageHeader.vue'
@@ -170,6 +180,8 @@ import CardHeader from '../../components/CardHeader.vue'
 import AppIcon from '../../components/AppIcon.vue'
 import DatePicker from '../../components/DatePicker.vue'
 import AdminTable from '../../components/AdminTable.vue'
+import StatCard from '../../components/StatCard.vue'
+import InfoItem from '../../components/InfoItem.vue'
 import { useListState } from '../../composables/useListState'
 
 const props = defineProps({
@@ -248,6 +260,24 @@ const rekap = computed(() => {
   return { ...c, total, efektif, persen: efektif > 0 ? Math.round((c.hadir / efektif) * 100) : null }
 })
 const filtered = computed(() => (activeTab.value === 'semua' ? rows.value : rows.value.filter((r) => r.status === activeTab.value)))
+
+const pklStatus = computed(() => pklStatusOf(lokasi.value))
+const periodePkl = computed(() => {
+  const g = lokasi.value?.gelombang
+  return g?.praktik_mulai && g?.praktik_selesai ? `${formatDate(g.praktik_mulai)} – ${formatDate(g.praktik_selesai)}` : ''
+})
+const stats = computed(() => [
+  {
+    label: 'Kehadiran',
+    icon: 'calendar-check',
+    tone: 'green',
+    value: rekap.value.persen != null ? `${rekap.value.persen}%` : null,
+    hint: loading.value ? 'memuat…' : `${rekap.value.hadir} dari ${rekap.value.efektif} hari`,
+  },
+  { label: 'Izin', icon: 'clipboard-list', tone: 'blue', value: loading.value ? null : rekap.value.izin, hint: 'bulan ini' },
+  { label: 'Sakit', icon: 'alert', tone: 'amber', value: loading.value ? null : rekap.value.sakit, hint: 'bulan ini' },
+  { label: 'Libur', icon: 'calendar', tone: 'blue', value: loading.value ? null : rekap.value.libur, hint: 'bulan ini' },
+])
 
 function selectTab(key) {
   activeTab.value = key
